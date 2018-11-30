@@ -2,30 +2,44 @@ using Distributed
 @everywhere using Distributed
 
 
-function generatePivot() end
+function generatePivot(src::AbstractArray{T,1} where T<:Number)
+    
+    if size(src)[1] > 15
+        range = 1:size(src)[1]
+        sum = Float64(0)
+        sum += src[rand(range)]
+        sum += src[rand(range)]
+        sum += src[rand(range)]
+        sum /= 3
+        return Int(floor(sum))
+    else
+        return src[rand(1:size(src)[1])]
+    end
+end
 
 function onePassSwaps!(src::AbstractArray{T,1} where T<:Number,
                        pivot::Number)
     
     # inicializacija
+    srcSize = size(src)[1]
     i = 0
-    j = size(src)[1] + 1
+    j = srcSize + 1
     
     # Hoarova particija - https://en.wikipedia.org/wiki/Quicksort
     while i < j
     
         i += 1
-        while src[i] < pivot
+        while i <= srcSize && src[i] < pivot
             i += 1
         end
         
         j -= 1
-        while src[j] > pivot
+        while j > 0 && src[j] > pivot
             j -= 1
         end
         
         if i >= j
-            return (j, size(src)[1] - j) # dolžina levega dela tabele
+            return (j, srcSize - j) # dolžina levega dela tabele
         end
         
         src[i], src[j] = src[j], src[i]
@@ -33,47 +47,69 @@ function onePassSwaps!(src::AbstractArray{T,1} where T<:Number,
     end
 end
 
-function inPlaceQuickSort!() end
-
-function outwardQuickSort!() end
-
-function adaptiveQS!(tabela::AbstractArray{T,1} where T<:Number;
-                     tempTabela::Union{AbstractArray{T,1},Nothing}=nothing where T<:Number,
-                     forward::Bool=true,
-                     procesi::Integer=4)
+function onePassSwapsOutward!(src::AbstractArray{T,1} where T<:Number,
+                              dest::AbstractArray{T,1} where T<:Number,
+                              pivot::Number)
     
-    if procesi == 1
-        if forward
-            inPlaceQuickSort(tabela)
-        else
-            outwardQuickSort(tabela, tempTabela)
+    # inicializacija
+    srcSize = size(src)[1]
+    i = 0
+    j = srcSize + 1
+    
+    
+    # Hoarova particija - https://en.wikipedia.org/wiki/Quicksort
+    while i < j
+    
+        i += 1
+        dest[i] = src[i]
+        while i <= srcSize < pivot
+            i += 1
+            dest[i] = src[i]
         end
+        
+        j -= 1
+        dest[j] = src[j]
+        while j > 0 && src[j] > pivot
+            j -= 1
+            dest[j] = src[j]
+        end
+        
+        if i >= j
+            return (j, srcSize - j) # dolžina levega dela tabele
+        end
+        
+        dest[i], dest[j] = dest[j], dest[i]
+        
+    end
+end
+
+function copyArray!(src::AbstractArray{T,1} where T<:Number,
+                    dest::AbstractArray{T,1} where T<:Number)
+    
+    dest[:] = src[:]
+end
+
+function inPlaceQuickSort!(src::AbstractArray{T,1} where T<:Number)
+    
+    if (size(src)[1] > 1)
+        
+        pivot = generatePivot(src)
+        sizes = onePassSwaps!(src, pivot)
+        inPlaceQuickSort!(view(src, 1:sizes[1]))
+        inPlaceQuickSort!(view(src, (sizes[1]+1):(size(src)[1])))
+    end
+end
+
+function outwardQuickSort!(src::AbstractArray{T,1} where T<:Number,
+                           dest::AbstractArray{T,1} where T<:Number)
+    
+    if (size(src)[1] > 1)
+        
+        pivot = generatePivot(src)
+        sizes = onePassSwapsOutward!(src, dest, pivot)
+        inPlaceQuickSort!(view(dest, 1:sizes[1]))
+        inPlaceQuickSort!(view(dest, sizes[1]+1:size(src)[1]))
     else
-    
-        # inicializacija začasne tabele
-        if tempTabela == nothing
-            tempTabela = Array{eltype(tabela)}(undef, size(tabela))
-        end
-        
-        # generiranje pivota, indeksov podtabel
-        pivot  = generatePivot(tabela)
-        myID   = myid()
-        step   = size(tabela)[1] / procesi
-        starts = [Int((i - 1) * step) + 1 for i in 1:procesi]
-        ends   = [Int(i * step) for i in 1:procesi]
-        ends[procesi] = size(tabela)[1] # za vsak primer
-        if forward
-            src = tabela
-        else
-            src = tempTabela
-        end
-        
-        # klicanje asinhronih metod
-        ret = [@spawnat (i + myID) onePassSwaps!(view(src, starts[i]:ends[i]), pivot) for i in 1:procesi]
-        sizes = [fetch(i) for i in ret]
-        
-        # računanje velikosti delov in odmikov
-        #TODO
-        
+        dest[1] = src[1]
     end
 end
