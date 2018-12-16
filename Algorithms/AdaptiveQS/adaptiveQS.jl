@@ -45,7 +45,7 @@ function adaptiveQS!(tabela::AbstractArray{T,1} where T<:Number,
         ret = [@spawnat (i + myID - 1) onePassSwaps!(view(src, starts[i]:ends[i]), pivot) for i in 1:procesi]
         sizes = [fetch(i) for i in ret]
         
-        display(sizes)
+        # display(sizes)
         
         # računanje velikosti delov in odmikov
         lowers  = Array{Int, 1}(undef, procesi)
@@ -64,8 +64,8 @@ function adaptiveQS!(tabela::AbstractArray{T,1} where T<:Number,
         
         highers .+= lowers[procesi] + sizes[procesi][1] - 1 #luškan mali trik
         
-        display(lowers)
-        display(highers)
+        # display(lowers)
+        # display(highers)
         
         # premikanje
         if forward
@@ -74,13 +74,13 @@ function adaptiveQS!(tabela::AbstractArray{T,1} where T<:Number,
             # lowers
             ret = [@spawnat (i + myID - 1) copyArray!(view(tabela,     starts[i]:starts[i]+sizes[i][1]-1),
                                                   view(tempTabela, lowers[i]:lowers[i]+sizes[i][1]-1)) for i in 1:procesi]
-            [wait(i) for i in ret]
+            ret = [fetch(i) for i in ret]
             
             
             # highers
             ret = [@spawnat (i + myID - 1) copyArray!(view(tabela,     starts[i]+sizes[i][1]:starts[i]+sizes[i][1]+sizes[i][2]-1),
                                                   view(tempTabela, highers[i]:highers[i]+sizes[i][2]-1)) for i in 1:procesi]
-            [wait(i) for i in ret]
+            ret = [fetch(i) for i in ret]
             
             """ fallback:
             # tabela -> temp
@@ -97,14 +97,14 @@ function adaptiveQS!(tabela::AbstractArray{T,1} where T<:Number,
             # lowers
             ret = [@spawnat (i + myID - 1) copyArray!(view(tempTabela, starts[i]:starts[i]+sizes[i][1]-1),
                                                   view(tabela,     lowers[i]:lowers[i]+sizes[i][1]-1)) for i in 1:procesi]
-            [wait(i) for i in ret]
+            ret = [fetch(i) for i in ret]
             
-            display("succ!")
+            # display("succ!")
             
             # highers
             ret = [@spawnat (i + myID - 1) copyArray!(view(tempTabela, starts[i]+sizes[i][1]:starts[i]+sizes[i][1]+sizes[i][2]-1),
                                                   view(tabela,     highers[i]:highers[i]+sizes[i][2]-1)) for i in 1:procesi]
-            [wait(i) for i in ret]
+            ret = [fetch(i) for i in ret]
         end
         
         # razpoložljive procese razdelimo čim bolj "pravično" na dva dela
@@ -126,10 +126,12 @@ function adaptiveQS!(tabela::AbstractArray{T,1} where T<:Number,
                                                       procesi=procesi-prviDel)
               ]
         
-        [wait(i) for i in ret]
+        ret = [fetch(i) for i in ret]
         
         # na tej točki je tabela sortirana -> konec!
     end
+    
+    return 0;
 end
 
 function _hitriTest(n)
@@ -141,6 +143,10 @@ function _hitriTest(n)
     temp = SharedArray{Int,1}(n)
     adaptiveQS!(a, temp)
     
+    display(nprocs())
+    
     display(a)
     display(issorted(a))
+    
+    return a;
 end
