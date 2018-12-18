@@ -7,10 +7,10 @@ Base.lock(isReady)
 a = [0]
 
 Threads.@threads for i = 1:Threads.nthreads()
-    if Threads.threadid() == 1
+    if Threads.threadid() == 2
         put!(c, 1)
-        # Base.unlock(isReady)
-    elseif Threads.threadid() == 2
+        Base.unlock(isReady)
+    elseif Threads.threadid() == 1
         Base.lock(isReady)
         a[1] = take!(c)
     end
