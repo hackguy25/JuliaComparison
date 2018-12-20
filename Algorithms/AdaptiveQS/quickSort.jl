@@ -46,7 +46,9 @@ end
 function copyArray!(src::AbstractArray{T,1} where T<:Number,
                     dest::AbstractArray{T,1} where T<:Number)
     
-    dest[:] = src[:]
+    for i = 1:size(src)[1]
+        dest[i] = src[i]
+    end
 end
 
 function inPlaceQuickSort!(src::AbstractArray{T,1} where T<:Number)

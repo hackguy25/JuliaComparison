@@ -1,12 +1,15 @@
 
 include("quickSort.jl")
 
-function adaptiveQS!(src)
+function adaptiveQS!(src; threads = -1)
     
     tempArray = similar(src)
+    if threads < 1
+        threads = Threads.nthreads()
+    end
     
     parts_ready = [] # src, temp, forward
-    to_split    = [(src, tempArray, 1, Threads.nthreads(), true)] # src, temp, start_thread, threads, forward
+    to_split    = [(src, tempArray, 1, threads, true)] # src, temp, start_thread, threads, forward
     
     while !isempty(to_split)
         
@@ -172,6 +175,9 @@ function adaptiveQS!(src)
     # println(src)
     # println(tempArray)
     
+    partSizes = [size(i[1])[1] for i in parts_ready]
+    println(partSizes)
+    
     Threads.@threads for i = 1:size(parts_ready)[1]
             
         srr, tgt, forward = parts_ready[i]
@@ -200,7 +206,7 @@ function _hitritest()
     src = rand(Int, 100000000)
     display(src)
     
-    adaptiveQS!(src)
+    adaptiveQS!(src, threads = 1000)
 
     display(src)
     issorted(src)
