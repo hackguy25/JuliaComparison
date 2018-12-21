@@ -10,29 +10,28 @@
 #include "omp.h"
 
 #define THREAD_NUM 2
-#define SIZE 1000000
+#define SIZE 10000000
+#define REPEAT 3
 
 int table[SIZE];
 
-struct ret_struct {
-	int left_;
-	int right_;
-};
-
-struct arg_struct {
+struct arg_struct { // STRUCT FOR PASSING PARAMETERS TO P_THREAD
 	int * table_;
-	int id_;
 	int pivot_;
 	int left_;
 	int right_;
 };
 
-void generateTable(int table[]) {
+int compare(const void * a, const void * b) { // FUNCTION FOR DEFAULT QS 
+	return (*(int*)a - *(int*)b);
+}
+
+void generateTable(int table[]) { // INSERT RANDOM INTEGERS IN TABLE TO SORT
 	for (int k = 0; k < SIZE; k++)
 		table[k] = rand() % SIZE;
 }
 
-int generatePivot(int table[], int left_border, int right_border, int size){
+int generatePivot(int table[], int left_border, int right_border, int size){ // GET PIVOT FOR PARTITION
 
 	float pivot = 0;
 
@@ -48,34 +47,30 @@ int generatePivot(int table[], int left_border, int right_border, int size){
 	}
 }
 
-void QuickSort(int tab[], int left_border, int right_border) {
-	
-	int size = right_border - left_border + 1;
-	if (size < 2) 
-		return;
+void QuickSort(int tab[], int left_border, int right_border) { // LAST PARTITIONS QS
 
-	int left_index = left_border;
-	int right_index = right_border;
+	int size = right_border - left_border + 1;
+	if (size < 2) return;
+
 	int pivot = generatePivot( tab, left_border, right_border, size);
+	
+	int left_index = left_border-1;
+	int right_index = right_border+1;
 
 	while (left_index <= right_index) {
 
+		left_index++;
 		while (table[left_index] < pivot)
 			left_index++;
 
+		right_index--;
 		while (table[right_index] > pivot)
 			right_index--;
 
-		if (left_index <= right_index) {
-
-			int mem1 = table[left_index];
-			int mem2 = table[right_index];
-
-			table[left_index] = mem2;
-			table[right_index] = mem1;
-
-			left_index++;
-			right_index--;
+		if (left_index < right_index) {
+			int mem = table[left_index];
+			table[left_index] = table[right_index];
+			table[right_index] = mem;
 		}
 	}
 
@@ -83,63 +78,55 @@ void QuickSort(int tab[], int left_border, int right_border) {
 	QuickSort(tab, left_index, right_border);
 }
 
-void * swapPass(void * arg) {
+void * swapPass(void * arg) { // ONE SWAP PASS THROUGH PARTITION
+
 	struct arg_struct * arguments = (struct arg_struct *) arg;
-	int * tab = arguments->table_;
-	int id = arguments->id_;
+	
+	int * tab = arguments->table_; // EXTRACTING ARGUMENTS
 	int pivot = arguments->pivot_;
 	int left_border = arguments->left_;
 	int right_border = arguments->right_;
 
-	int left_index = left_border;
-	int right_index = right_border;
+	int left_index = left_border - 1; 
+	int right_index = right_border + 1;
 
 	while (left_index <= right_index) {
 
-		while (table[left_index] < pivot && left_index <= right_index)
+		left_index++;
+		while (table[left_index] <= pivot && left_index <= right_border)
 			left_index++;
 
-		while (table[right_index] >= pivot && right_index >= left_index)
+		right_index--;
+		while (table[right_index] > pivot && right_index >= left_border)
 			right_index--;
 
-
-		if (left_index <= right_index) {
-
-			int mem1 = table[left_index];
-			int mem2 = table[right_index];
-
-			table[left_index] = mem2;
-			table[right_index] = mem1;
-
-			left_index++;
-			right_index--;
+		if (left_index < right_index) { // SWAP
+			int mem = table[left_index];
+			table[left_index] = table[right_index];
+			table[right_index] = mem;
 		}
 	}
-	 
-	return (void *) left_index;
+	return (void *) right_index; // RETURN SPLIT POINT
 }
 
-void threadQuickSort(int tab[], int temp_tab[], int left_border, int right_border, int proc, int dir) {
+void threadQuickSort(int tab[], int temp_tab[], int left_border, int right_border, int proc, int dir) { // MAIN QS FUNCTION
 
 	if (proc == 0)
 		proc = THREAD_NUM;
 
-	if (proc == 1)
+	if (proc == 1) {
 		QuickSort(tab, left_border, right_border);
-	else {
-
+	} else {
 		int size = right_border - left_border + 1;
 		int pivot = generatePivot(tab, left_border, right_border, size);
 
 		int step = size / proc;
 		int rem = size % proc;
 
-
 		int * starts = (int *)malloc(proc * sizeof(int));
 		int * ends = (int *)malloc(proc * sizeof(int));
 
-		// SET BORDERS 
-		for (int k = 0; k < proc; k++) {
+		for (int k = 0; k < proc; k++) { // SET PARTITION START AND END
 
 			if (k == 0) starts[k] = left_border;
 			else starts[k] = ends[k - 1] + 1;
@@ -155,87 +142,103 @@ void threadQuickSort(int tab[], int temp_tab[], int left_border, int right_borde
 		// RUN SWAP_PASS ON EACH PART
 		pthread_t * thread = (pthread_t *)malloc(proc * sizeof(pthread_t));
 		struct arg_struct * arguments = (arg_struct *)malloc(proc * sizeof(arg_struct));
+		void ** ret = (void **)malloc(proc * sizeof(void *));
+		int * split = (int *)malloc(proc * sizeof(int));
 
 		for (int k = 0; k < proc; k++) {
 			arguments[k].table_ = tab;
-			arguments[k].id_ = k;
 			arguments[k].pivot_ = pivot;
 			arguments[k].left_ = starts[k];
 			arguments[k].right_ = ends[k];
 
+			// SPAWN THREADS AND COLLECT RESULTS
 			pthread_create(&thread[k], NULL, swapPass, (void *)&arguments[k]);
+			pthread_join(thread[k], &ret[k]);
+			
+			split[k] = (int)ret[k] + 1;
 		}
 
-		void * ret;
-		int * split = (int *)malloc(proc * sizeof(int));
-
-		for (int k = 0; k < proc; k++) {
-			pthread_join(thread[k], &ret);
-			split[k] = (int)ret;
-		}
-
-		// MERGE START
-		for (int k = 0; k < SIZE; k++)
+		for (int k = left_border; k <= right_border; k++) // CROSOVER PART START
 			temp_tab[k] = tab[k];
 
 		int counter = 0;
 		for (int k = 0; k < proc; k++) {
-			for (int i = 0; i < split[k] - starts[k]; i++) {
+			for (int i = left_border; i < split[k] - starts[k]; i++) {
 				tab[counter] = temp_tab[starts[k] + i];
 				counter++;
 			}
-		}
-
-		int splitter = counter;
-
-		for (int k = 0; k < proc; k++) {
-			for (int i = 0; i < ends[k] - split[k] + 1; i++) {
+			for (int i = left_border; i < ends[k] - split[k] + 1; i++) {
 				tab[counter] = temp_tab[split[k] + i];
 				counter++;
 			}
 		}
 
+		int splitter = left_border + counter; // DETERMINE NUMBER OF THREADS PER PARTITION
+
 		int size_left = splitter - left_border;
 		int size_right = right_border - splitter + 1;
 
-		int proc_left = (int)round((float)(((float)size_left / (float)size) * proc));
+		int proc_left = round(((float)size_left / (float)size) * proc);
 
-		if (proc_left == 0) proc_left = 1;
+		if		(proc_left <= 0)	proc_left = 1;
 		else if (proc_left >= proc) proc_left = proc - 1;
 
 		int proc_right = proc - proc_left;
 
-		if (size_left == 0) {
-			threadQuickSort(tab, temp_tab, splitter, right_border, proc, 0);
-		} else if (size_right == 0) {
-		threadQuickSort(tab, temp_tab, left_border, splitter - 1, proc, 0);
-		} else {
-			threadQuickSort(tab, temp_tab, left_border, splitter - 1, proc_left, 0);
-			threadQuickSort(tab, temp_tab, splitter, right_border, proc_right, 0);
-		}
+		if( proc_left  > 0 ) threadQuickSort( tab, temp_tab, left_border, splitter-1, proc_left, 0);
+		if( proc_right > 0 ) threadQuickSort( tab, temp_tab, splitter, right_border, proc_right, 0);
 	}
 }
 
 int main(void) {
 
 	srand(time(NULL));
-	generateTable(table);
+	clock_t t1, t2, t3, t4;
 
-	clock_t t1, t2;
-	t1 = clock();
+	int n = REPEAT; // NUMBER OF REPETITIONS
+	int avg_time = 0;
+	int avg_dtime = 0;
+	int sorted = 0;
+	int num_sorted = 0;
+	int sol[SIZE];
 
-	int temp_table[SIZE];
-	threadQuickSort(table, temp_table, 0, SIZE - 1, 0, 0);
+	printf("QUICKSORT THREADS = %d\nARRAY SIZE = %d\nREPEATS = %d\n\n", THREAD_NUM, SIZE, n);
 
-	t2 = clock();
-	printf("\n%d-Thread QuickSort Time = %d ms\n", THREAD_NUM, (int)(t2 - t1));
+	for (int k = 0; k < n; k++) {
 
-	int check = 1;
-	for (int k = 0; k < SIZE - 1; k++)
-		if (table[k] > table[k + 1]) check = 0;
-	printf("IS SORTED = %d\n", check);
+		// INITIALITE TEMP TABLE, COPY TABLE
+		int temp_table[SIZE];
+		generateTable(table);
+		for (int k = 0; k < SIZE; k++) sol[k] = table[k];
+		//
 
-	getc(stdin);
+		// THREADED QS
+		t1 = clock();
+		threadQuickSort(table, temp_table, 0, SIZE - 1, 0, 0);
+		t2 = clock();
+
+		// DEFAULT QS
+		t3 = clock();
+		qsort(sol, SIZE, sizeof(int), compare);
+		t4 = clock();
+
+		avg_time += (int)(t2 - t1);
+		avg_dtime += (int)(t4 - t3);
+
+		// CHECK IF SORTED
+		sorted = 1;
+		for (int k = 0; k < SIZE ; k++)
+			if (sol[k] != table[k])	sorted = 0;
+
+		printf("IS SORTED = %d --- TIME = %d ms\n", sorted, (int)(t2 - t1));
+		if (sorted) num_sorted++;
+		//
+	}
+	avg_time /= n;
+	avg_dtime /= n;
+	printf("\n\nSORTED = %d / %d ---\nAVERAGE THREAD-QS TIME = %d ms\nAVERAGE DEFAULT-QS TIME = %d ms\n", num_sorted, n, avg_time, avg_dtime);
+
+	getc(stdin); // EMPTY INPUT FOR WAITING
 
 	return 0;
 }
