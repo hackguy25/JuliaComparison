@@ -3,215 +3,155 @@
 
 # Julia
 
+using Distributed
+@everywhere using Distributed
+@everywhere using SharedArrays
+
 include("quickSort.jl")
 
-function adaptiveQS!(src; threads = -1)
+function adaptiveQS!(tabela::AbstractArray{T,1} where T<:Number,
+                     tempTabela::AbstractArray{T,1} where T<:Number;
+                     forward::Bool=true,
+                     procesi::Integer=-1)
     
-    tempArray = similar(src)
-    if threads < 1
-        threads = Threads.nthreads()
+    if procesi == -1
+        procesi = nprocs()
     end
     
-    parts_ready = [] # src, temp, forward
-    to_split    = [(src, tempArray, 1, threads, true)] # src, temp, start_thread, threads, forward
-    
-    while !isempty(to_split)
-        
-        parts    = []
-        throw_out = []
-        # println("To split: ", to_split)
-        
-        for (idx, part_to_split) in enumerate(to_split)
-            
-            tabela, tempTabela, myID, procesi, forward = part_to_split
-            
-            if procesi == 1
-                
-                push!(parts_ready, (tabela, tempTabela, forward))
-                pushfirst!(throw_out, idx)
-                continue
-            end
-            
-            pivot = generatePivot(tabela)
-            
-            step   = size(tabela)[1] / procesi
-            starts = [Int(round((i - 1) * step)) + 1 for i in 1:procesi]
-            ends   = [Int(round(i * step)) for i in 1:procesi]
-            ends[procesi] = size(tabela)[1] # za vsak primer
-            
-            if forward
-                src = tabela
-                tgt = tempTabela
-            else
-                src = tempTabela
-                tgt = tabela
-            end
-            
-            for i = 1:procesi
-                
-                push!(parts, (myID, view(src, starts[i]:ends[i]), pivot))
-            end
-        end
-        
-        for i in throw_out
-            
-            splice!(to_split, i)
-        end
-        
-        # println("Parts ready: ", parts_ready)
-        # println("Split, parts: ", parts)
-        
-        if size(parts)[1] == 0
-            break
-        end
-        
-        sizes = Array{Any, 1}(undef, size(parts)[1])
-        # println(src)
-        
-        Threads.@threads for i = 1:size(parts)[1]
-            
-            sizes[i] = (parts[i][1], onePassSwaps!(parts[i][2], parts[i][3]))
-        end
-        
-        # println("Shuffled!")
-        # println("Sizes: ", sizes)
-        # println(src)
-        
-        parts  = []
-        extras = Array{Any, 1}(undef, size(to_split)[1])
-        
-        for (idx, part_to_split) in enumerate(to_split)
-            
-            tabela, tempTabela, myID, procesi, forward = part_to_split
-            
-            id_sizes = [i[2] for i in sizes if i[1] == myID]
-            
-            if forward
-                src = tabela
-                tgt = tempTabela
-            else
-                src = tempTabela
-                tgt = tabela
-            end
-            
-            # računanje velikosti delov in odmikov
-            lowers  = Array{Int, 1}(undef, procesi)
-            highers = Array{Int, 1}(undef, procesi)
-            starts  = Array{Int, 1}(undef, procesi)
-            
-            lowers[1]  = 1
-            highers[1] = 1
-            starts[1]  = 1
-            
-            for (i, lens) in enumerate(id_sizes[1:procesi-1])
-                lowers[i+1]  = lowers[i]  + lens[1]
-                highers[i+1] = highers[i] + lens[2]
-                starts[i+1]  = starts[i]  + lens[1] + lens[2]
-            end
-            
-            highers .+= lowers[procesi] + id_sizes[procesi][1] - 1 #luškan mali trik
-            
-            for i = 1:procesi
-                
-                push!(parts, (view(src, starts[i]:starts[i]+id_sizes[i][1]-1),
-                              view(tgt, lowers[i]:lowers[i]+id_sizes[i][1]-1)))
-                push!(parts, (view(src, starts[i]+id_sizes[i][1]:starts[i]+id_sizes[i][1]+id_sizes[i][2]-1),
-                              view(tgt, highers[i]:highers[i]+id_sizes[i][2]-1)))
-            end
-            
-            extras[idx] = (lowers, highers, id_sizes)
-        end
-        
-        # println("Collected!")
-        # println("Extras: ", extras)
-        # println("Parts: ", parts)
-        # println(src, tempArray)
-        
-        Threads.@threads for i = 1:size(parts)[1]
-            
-            copyArray!(parts[i][1], parts[i][2])
-        end
-        
-        # println("Swapped!")
-        # println(src, tempArray)
-        
-        parts = []
-        
-        for (idx, part_to_split) in enumerate(to_split)
-            
-            tabela, tempTabela, myID, procesi, forward = part_to_split
-            lowers, highers, id_sizes = extras[idx]
-            
-            if forward
-                src = tabela
-                tgt = tempTabela
-            else
-                src = tempTabela
-                tgt = tabela
-            end
-            
-            # razpoložljive procese razdelimo čim bolj "pravično" na dva dela
-            prviDel = Int(round((lowers[procesi] + id_sizes[procesi][1] - 1) * procesi / size(tabela)[1])) + 1
-            if prviDel <= 0
-                prviDel = 1
-            elseif prviDel >= procesi
-                prviDel = procesi-1
-            end
-            
-            # računanje velikosti tabel
-            sizeLower = lowers[procesi] + id_sizes[procesi][1] - 1
-            # println("Size Lower: ", sizeLower)
-            
-            # rekurzivna klica
-            push!(parts, (view(tabela, 1:sizeLower), view(tempTabela, 1:sizeLower), myID, prviDel, !forward))
-            # println("Pushed one!")
-            push!(parts, (view(tabela, (sizeLower+1):(size(tabela)[1])), view(tempTabela, (sizeLower+1):(size(tabela)[1])),
-                          myID + prviDel, procesi - prviDel, !forward))
-            # println("Pushed two!")
-        end
-        
-        # println("Recursed!")
-        
-        to_split = parts
-    end
-    
-    # println("At the bottom!")
-    # println(src)
-    # println(tempArray)
-    
-    partSizes = [size(i[1])[1] for i in parts_ready]
-    println(partSizes)
-    
-    Threads.@threads for i = 1:size(parts_ready)[1]
-            
-        srr, tgt, forward = parts_ready[i]
-        
+    if procesi == 1
         if forward
-            inPlaceQuickSort!(srr)
+            inPlaceQuickSort!(tabela)
         else
-            outwardQuickSort!(tgt, srr)
+            outwardQuickSort!(tempTabela, tabela)
         end
+    else
+    
+        # display(nprocs())
+    
+        # inicializacija začasne tabele
+        # if tempTabela == nothing
+            # tempTabela = Array{eltype(tabela)}(undef, size(tabela))
+        # end
+        
+        # generiranje pivota, indeksov podtabel
+        pivot  = generatePivot(tabela)
+        myID   = myid()
+        step   = size(tabela)[1] / procesi
+        starts = [Int(floor((i - 1) * step)) + 1 for i in 1:procesi]
+        ends   = [Int(floor(i * step)) for i in 1:procesi]
+        ends[procesi] = size(tabela)[1] # za vsak primer
+        if forward
+            src = tabela
+        else
+            src = tempTabela
+        end
+        
+        # klicanje asinhronih metod
+        ret = [@spawnat (i + myID - 1) onePassSwaps!(view(src, starts[i]:ends[i]), pivot) for i in 1:procesi]
+        sizes = [fetch(i) for i in ret]
+        
+        # display(sizes)
+        
+        # računanje velikosti delov in odmikov
+        lowers  = Array{Int, 1}(undef, procesi)
+        highers = Array{Int, 1}(undef, procesi)
+        starts  = Array{Int, 1}(undef, procesi)
+        
+        lowers[1]  = 1
+        highers[1] = 1
+        starts[1]  = 1
+        
+        for (i, lens) in enumerate(sizes[1:procesi-1])
+            lowers[i+1]  = lowers[i]  + lens[1]
+            highers[i+1] = highers[i] + lens[2]
+            starts[i+1]  = starts[i]  + lens[1] + lens[2]
+        end
+        
+        highers .+= lowers[procesi] + sizes[procesi][1] - 1 #luškan mali trik
+        
+        # display(lowers)
+        # display(highers)
+        
+        # premikanje
+        if forward
+            
+            # tabela -> temp
+            # lowers
+            ret = [@spawnat (i + myID - 1) copyArray!(view(tabela,     starts[i]:starts[i]+sizes[i][1]-1),
+                                                  view(tempTabela, lowers[i]:lowers[i]+sizes[i][1]-1)) for i in 1:procesi]
+            ret = [fetch(i) for i in ret]
+            
+            
+            # highers
+            ret = [@spawnat (i + myID - 1) copyArray!(view(tabela,     starts[i]+sizes[i][1]:starts[i]+sizes[i][1]+sizes[i][2]-1),
+                                                  view(tempTabela, highers[i]:highers[i]+sizes[i][2]-1)) for i in 1:procesi]
+            ret = [fetch(i) for i in ret]
+            
+            """ fallback:
+            # tabela -> temp
+            for i = 1:procesi
+                # lowers
+                tempTabela[lowers[i]:lowers[i]+sizes[i][1]-1]   = tabela[starts[i]:starts[i]+sizes[i][1]-1]
+                # highers
+                tempTabela[highers[i]:highers[i]+sizes[i][2]-1] = tabela[starts[i]+sizes[i][1]:starts[i]+sizes[i][1]+sizes[i][2]-1]
+            end
+            """
+        else
+            
+            # temp -> tabela
+            # lowers
+            ret = [@spawnat (i + myID - 1) copyArray!(view(tempTabela, starts[i]:starts[i]+sizes[i][1]-1),
+                                                  view(tabela,     lowers[i]:lowers[i]+sizes[i][1]-1)) for i in 1:procesi]
+            ret = [fetch(i) for i in ret]
+            
+            # display("succ!")
+            
+            # highers
+            ret = [@spawnat (i + myID - 1) copyArray!(view(tempTabela, starts[i]+sizes[i][1]:starts[i]+sizes[i][1]+sizes[i][2]-1),
+                                                  view(tabela,     highers[i]:highers[i]+sizes[i][2]-1)) for i in 1:procesi]
+            ret = [fetch(i) for i in ret]
+        end
+        
+        # razpoložljive procese razdelimo čim bolj "pravično" na dva dela
+        prviDel = Int(floor((lowers[procesi] + sizes[procesi][1] - 1) * procesi / size(tabela)[1])) + 1
+        if prviDel <= 0
+            prviDel = 1
+        elseif prviDel >= procesi
+            prviDel = procesi-1
+        end
+        
+        # asinhrona rekurzivna klica
+        ret = [ @spawnat myID             adaptiveQS!(view(tabela,     1:lowers[procesi]+sizes[procesi][1]-1),
+                                                      view(tempTabela, 1:lowers[procesi]+sizes[procesi][1]-1),
+                                                      forward=!forward,
+                                                      procesi=prviDel),
+                @spawnat (myID + prviDel) adaptiveQS!(view(tabela,     lowers[procesi]+sizes[procesi][1]:size(tabela)[1]),
+                                                      view(tempTabela, lowers[procesi]+sizes[procesi][1]:size(tabela)[1]),
+                                                      forward=!forward,
+                                                      procesi=procesi-prviDel)
+              ]
+        
+        ret = [fetch(i) for i in ret]
+        
+        # na tej točki je tabela sortirana -> konec!
     end
+    
+    return 0;
 end
 
-function _hitritest(n)
+function _hitriTest(n)
     
-    src = collect(n:-1:1)
-    display(src)
+    a = SharedArray{Int,1}(n)
+    a[1:n] = collect(n:-1:1)
+    display(a)
     
-    adaptiveQS!(src)
-
-    display(src)
-    issorted(src)
-end
-
-function _hitritest()
+    temp = SharedArray{Int,1}(n)
+    adaptiveQS!(a, temp)
     
-    src = rand(Int, 100000000)
-    display(src)
+    display(nprocs())
     
-    adaptiveQS!(src, threads = 1000)
-
-    display(src)
-    issorted(src)
+    display(a)
+    display(issorted(a))
+    
+    return a;
 end
