@@ -1,5 +1,5 @@
 import numpy as np
-import math
+import multiprocessing as mp
 
 def generatePivot (src: np.ndarray):
 
@@ -10,7 +10,7 @@ def generatePivot (src: np.ndarray):
         sum += np.random.choice(src)
         sum += np.random.choice(src)
         sum /= 3
-        return math.floor(sum)
+        return round(sum)
     else:
 
         return int(np.random.choice(src))
@@ -37,8 +37,40 @@ def onePassSwaps (src: np.ndarray, pivot):
 
         src[i], src[j] = src[j], src[i]
 
+def onePassSwapsThreadable (src_obj: mp.RawArray, dims: tuple, pivot, ret: mp.Queue):
+
+    # inicializacija
+    i = -1
+    j = dims[1] - dims[0]
+    src = np.frombuffer(src_obj, dtype = np.int64)[dims[0]:dims[1]]
+
+    # Hoarova particija - https://en.wikipedia.org/wiki/Quicksort
+    while i < j:
+
+        i += 1
+        while i < src.size and src[i] < pivot:
+            i += 1
+
+        j -= 1
+        while j >= 0 and src[j] > pivot:
+            j -= 1
+
+        if i >= j:
+            ret.put((i, src.size - i)) # dolžina levega in desnega dela tabele
+            return
+
+        src[i], src[j] = src[j], src[i]
+
 def copyArray (src: np.ndarray, dest: np.ndarray):
 
+    for i in range(src.size):
+        dest[i] = src[i]
+
+def copyArrayThreadable (src_obj: mp.RawArray, dest_obj: mp.RawArray, src_dims: tuple, dest_dims: tuple):
+
+    src  = np.frombuffer(src_obj,  dtype = np.int64)[src_dims[0]:src_dims[1]]
+    dest = np.frombuffer(dest_obj, dtype = np.int64)[dest_dims[0]:dest_dims[1]]
+    
     for i in range(src.size):
         dest[i] = src[i]
 
