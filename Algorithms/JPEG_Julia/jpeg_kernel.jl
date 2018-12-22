@@ -26,6 +26,7 @@ function jpeg(imageIn, imageOut, q_matrix, width, height)
         
         sum += local_image[l_id0, n] * CUDAnative.cos((PI / 8) * (n - 0.5f0) * (l_id1 - 1))
     end
+    
     dct[l_id0, l_id1] = sum
     
     sync_threads() # WAIT FOR ALL THREADS TO CALCULATE 1D DCT
@@ -59,6 +60,7 @@ function jpeg(imageIn, imageOut, q_matrix, width, height)
         
         sum += 0.25f0 * idct[l_id0, n] * CUDAnative.cos((PI / 8) * (n - 1) * (l_id1 - 0.5f0))
     end
+    idct[l_id0, l_id1] = sum
     
     sync_threads() # WAIT FOR ALL THREADS TO CALCULATE 2D inverse-DCT
     

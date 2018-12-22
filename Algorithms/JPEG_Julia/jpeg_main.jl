@@ -1,13 +1,13 @@
-# __precompile__(true) # ko vse deluje
+__precompile__(true) # ko vse deluje
 
 using FileIO
 using Images
 using CuArrays, CUDAnative, CUDAdrv
 
-file_name = "image_4096.png"
+#file_name = "image_512.png"
 #file_name = "image_1024.png"
 #file_name = "image_2048.png"
-#file_name = "image_4096.png"
+file_name = "image_4096.png"
 
 image_in = Gray.(load("../JPEG_basic/" * file_name))
 
@@ -42,17 +42,19 @@ WORKGROUP_SIZE = 8
 threadNum = (        WORKGROUP_SIZE,          WORKGROUP_SIZE)
 groupNum  = (width ÷ WORKGROUP_SIZE, height ÷ WORKGROUP_SIZE)
 
-@cuda jpeg(imagein_mem_obj, imageout_mem_obj, qmatrix_mem_obj, width, height)
+@cuda threads=threadNum blocks=groupNum jpeg(imagein_mem_obj, imageout_mem_obj, qmatrix_mem_obj, width, height)
 
 image_out = Array(imageout_mem_obj)
 image_out = UInt8.(image_out)
 
 t2 = time_ns()
 
+display(image_out)
+
 time2 = (t2 - t1) / 1000000
 println("GPU time: ", Int(round(time2)), " ms");
 
-image_out = colorview(Gray, reinterpret(N0f8, reshape(image_out', width, height)))
+image_out = colorview(Gray, reinterpret(N0f8, reshape(image_out, width, height)'))
 save("image_compressed.png", image_out)
 
 nothing
