@@ -147,7 +147,7 @@ function adaptiveQS!(src; threads = -1)
             end
             
             # razpoložljive procese razdelimo čim bolj "pravično" na dva dela
-            prviDel = Int(round((lowers[procesi] + id_sizes[procesi][1] - 1) * procesi / size(tabela)[1])) + 1
+            prviDel = Int(round((lowers[procesi] + id_sizes[procesi][1] - 1) * procesi / size(tabela)[1]))
             if prviDel <= 0
                 prviDel = 1
             elseif prviDel >= procesi
