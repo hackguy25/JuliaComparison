@@ -10,11 +10,10 @@
 #include "omp.h"
 
 #define THREAD_NUM 8
-#define SIZE 500000
+#define SIZE 1000000
 #define REPEAT 100
 
 int table[SIZE];
-//int temp_table[SIZE];
 
 int starts[THREAD_NUM];
 int split[THREAD_NUM];
@@ -168,11 +167,9 @@ void threadQuickSort( int left_border, int right_border, int proc_start, int pro
 			pthread_join(thread[k], NULL);
 		}
 
-		//for (int k = left_border; k <= right_border; k++) // CROSOVER PART START
-		//	temp_table[k] = table[k];
-
 		int splitter = starts[proc_start];
 		int counter = starts[proc_start];
+
 		for (int k = proc_start; k < proc_start + proc; k++) {
 
 			for (int i = starts[k]; i < split[k]; i++) {
@@ -184,14 +181,7 @@ void threadQuickSort( int left_border, int right_border, int proc_start, int pro
 				splitter++;
 			}
 		}
-		/*
-		for (int k = proc_start; k < proc_start + proc; k++) {
-			for (int i = split[k]; i <= ends[k]; i++) {
-				table[counter] = temp_table[i];
-				counter++;
-			}
-		}
-		*/
+
 		int size_left = splitter - left_border;
 		int size_right = right_border - splitter + 1;
 
@@ -216,12 +206,11 @@ int main(void) {
 	srand(time(NULL));
 	clock_t t1, t2;
 
-	int n = REPEAT; // NUMBER OF REPETITIONS
 	int avg_time = 0;
 
-	printf("QUICKSORT THREADS = %d\nARRAY SIZE = %d\nREPEATS = %d\n\n", THREAD_NUM, SIZE, n);
+	printf("QUICKSORT THREADS = %d\nARRAY SIZE = %d\nREPEATS = %d\n\n", THREAD_NUM, SIZE, REPEAT);
 
-	for (int k = 0; k < n; k++) {
+	for (int k = 0; k < REPEAT; k++) {
 
 		generateTable();
 
@@ -234,7 +223,7 @@ int main(void) {
 		printf("TIME = %d ms\n", (int)(t2 - t1));
 
 	}
-	avg_time /= n;
+	avg_time /= REPEAT;
 
 	printf("\nAVERAGE %d-THREAD QUICKSORT TIME = %d ms\n", THREAD_NUM, avg_time);
 
