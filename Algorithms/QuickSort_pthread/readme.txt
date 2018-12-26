@@ -1,19 +1,15 @@
 QuickSort p_thread
 
-Deluje za poljubno število niti in poljubno velike tabele.
+NUM_THREADS => število niti
+SIZE => velikost tabele, ki jo sortiramo
+REPEAT => število ponavljanj za izračun povprečja
+SORT_CHECK => default -> 0 // preverjanje pravilnosti sortiranja -> 1
 
-DELUJE S THREADI AMPAK!!!
+Pararelno izvajanje:
+  - OneSwapPass
+  - FinalQuickSort
 
-pthread_create
-pthread_join
-
-ni isto kot 
-
-pthread_create
-pthread_detach
-
-... zaradi join deluje počasneje... proskušal izboljšat v QS_broken
-
-NASTAVITEV OKOLJA:
-
-Linker -> System -> Stack reserve size = 268435456
+Izpuščeno:
+  - "Merge"
+  
+Deluje za poljubno število niti in velikosti tabele.
