@@ -7,14 +7,15 @@
 #include <windows.h> 
 #include <algorithm>
 #include <pthread.h>
-#include "omp.h"
 
 #define THREAD_NUM 8
-#define SIZE 1000000
-#define REPEAT 100
+#define SIZE 100000
+#define REPEAT 10
+#define SORT_CHECK 0 // 1 - check if sorted --- 0 - ignore
+
+// 
 
 int table[SIZE];
-
 int starts[THREAD_NUM];
 int split[THREAD_NUM];
 int ends[THREAD_NUM];
@@ -30,7 +31,7 @@ int compare(const void * a, const void * b) { // FUNCTION FOR DEFAULT QS
 
 void generateTable() { // INSERT RANDOM INTEGERS IN TABLE TO SORT
 	for (int k = 0; k < SIZE; k++)
-		table[k] = rand() % SIZE;
+		table[k] = rand();
 }
 
 int generatePivot(int left_border, int right_border, int size) { // GET PIVOT FOR PARTITION
@@ -43,8 +44,7 @@ int generatePivot(int left_border, int right_border, int size) { // GET PIVOT FO
 		pivot += table[rand() % size + left_border];
 		pivot /= 3;
 		return (int)round(pivot);
-	}
-	else {
+	} else {
 		pivot = table[rand() % size + left_border];
 		return (int)pivot;
 	}
@@ -55,7 +55,7 @@ void QuickSort(int left_border, int right_border) {
 	int size = right_border - left_border + 1;
 	if (size < 2) return;
 
-	int pivot = generatePivot( left_border, right_border, size);
+	int pivot = generatePivot(left_border, right_border, size);
 
 	int left_index = left_border - 1;
 	int right_index = right_border + 1;
@@ -82,7 +82,7 @@ void QuickSort(int left_border, int right_border) {
 }
 
 void * finalQuickSortStarter(void * arg) {
-	
+
 	int id = (int)arg;
 
 	int left_border = starts[id];
@@ -125,7 +125,7 @@ void * swapPass(void * arg) {
 	return NULL;
 }
 
-void threadQuickSort( int left_border, int right_border, int proc_start, int proc, int init) { // MAIN QS FUNCTION
+void threadQuickSort(int left_border, int right_border, int proc_start, int proc, int init) { // MAIN QS FUNCTION
 
 	if (proc == 0)
 		proc = THREAD_NUM;
@@ -136,8 +136,9 @@ void threadQuickSort( int left_border, int right_border, int proc_start, int pro
 
 		pthread_create(&thread[proc_start], NULL, finalQuickSortStarter, (void *)proc_start);
 		pthread_detach(thread[proc_start]);
-		
-	} else {
+
+	}
+	else {
 		int size = right_border - left_border + 1;
 		int pivot_ = generatePivot(left_border, right_border, size);
 
@@ -192,16 +193,22 @@ void threadQuickSort( int left_border, int right_border, int proc_start, int pro
 
 		int proc_right = proc - proc_left;
 
-		if (proc_left > 0) threadQuickSort( left_border, splitter - 1, proc_start, proc_left, 1);
-		if (proc_right > 0) threadQuickSort( splitter, right_border, proc_start + proc_left, proc_right, 1);
+		if (proc_left > 0) threadQuickSort(left_border, splitter - 1, proc_start, proc_left, 1);
+		if (proc_right > 0) threadQuickSort(splitter, right_border, proc_start + proc_left, proc_right, 1);
 	}
-	if ( init == 0) {
+	if (init == 0) {
 		while (thread_finish < THREAD_NUM) {}
 		thread_finish = 0;
 	}
 }
 
 int main(void) {
+
+	/* INIT VARIABLES FOR SORT CHECKING*/
+	int check_sort[SIZE];
+	int sorted = 1;
+	int check_enable = 0;
+	int num_sorted = 0;
 
 	srand(time(NULL));
 	clock_t t1, t2;
@@ -214,18 +221,36 @@ int main(void) {
 
 		generateTable();
 
+		if( check_enable ) {
+			for (int k = 0; k < SIZE; k++)
+				check_sort[k] = table[k];
+		}
+
 		t1 = clock();
-		threadQuickSort( 0, SIZE - 1, 0, 0, 0);
+		threadQuickSort(0, SIZE - 1, 0, 0, 0);
 		t2 = clock();
 
 		avg_time += (int)(t2 - t1);
 
 		printf("TIME = %d ms\n", (int)(t2 - t1));
 
+		if ( check_enable ) {
+
+			qsort(check_sort, SIZE, sizeof(int), compare);
+
+			for (int k = 0; k < SIZE; k++)
+				if (check_sort[k] != table[k])	sorted = 0;
+			
+			printf("IS SORTED = %d\n", sorted);
+
+			if (sorted) num_sorted++;
+			sorted = 1;
+		}
 	}
 	avg_time /= REPEAT;
 
 	printf("\nAVERAGE %d-THREAD QUICKSORT TIME = %d ms\n", THREAD_NUM, avg_time);
+	if( check_enable ) printf("\nSORTED = %d/%d\n", num_sorted, REPEAT);
 
 	getc(stdin); // EMPTY INPUT FOR WAITING
 
