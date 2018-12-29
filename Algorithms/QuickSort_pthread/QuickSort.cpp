@@ -207,7 +207,7 @@ int main(void) {
 	/* INIT VARIABLES FOR SORT CHECKING*/
 	int check_sort[SIZE];
 	int sorted = 1;
-	int check_enable = 0;
+	int check_enable = SORT_CHECK;
 	int num_sorted = 0;
 
 	srand(time(NULL));
