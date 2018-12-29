@@ -8,21 +8,21 @@
 #include "omp.h"
 
 #define THREAD_NUM 8
-#define SIZE 2000000
-#define REPEAT 10
+#define SIZE 1000000
+#define REPEAT 100
 #define SORT_CHECK 0 // 1 - check if sorted --- 0 - not checking
 
-long table[SIZE];
-long pivot[THREAD_NUM];
+long long table[SIZE];
+long long pivot[THREAD_NUM];
 
 int starts[THREAD_NUM];
 int split[THREAD_NUM];
 int ends[THREAD_NUM];
 
-unsigned long seed;
+unsigned long long seed;
 
-unsigned long rand_ulong(void) {
-	unsigned long x = seed;
+unsigned long long rand_ulong(void) {
+	unsigned long long x = seed;
 	x ^= x << 13;
 	x ^= x >> 17;
 	x ^= x << 5;
@@ -31,9 +31,9 @@ unsigned long rand_ulong(void) {
 }
 
 int compare(const void * a, const void * b) { // FUNCTION FOR DEFAULT QS 
-	if (*(long*)a - *(long*)b < 0)
+	if (*(long long*)a - *(long long*)b < 0)
 		return -1;
-	if (*(long*)a - *(long*)b > 0)
+	if (*(long long*)a - *(long long*)b > 0)
 		return 1;
 	return 0;
 }
@@ -47,9 +47,9 @@ void generateTable() { // INSERT RANDOM INTEGERS IN TABLE TO SORT
 	}
 }
 
-long generatePivot(int left_border, int right_border, int size) { // GET PIVOT FOR PARTITION
+long long generatePivot(int left_border, int right_border, int size) { // GET PIVOT FOR PARTITION
 
-	long pivot = 0;
+	long long pivot = 0;
 
 	if (size > 15) {
 		pivot += table[ rand_ulong() % size + left_border]/3;
@@ -67,7 +67,7 @@ void QuickSort(int left_border, int right_border) {
 	int size = right_border - left_border + 1;
 	if (size < 2) return;
 
-	long pivot = generatePivot(left_border, right_border, size);
+	long long pivot = generatePivot(left_border, right_border, size);
 
 	int left_index = left_border - 1;
 	int right_index = right_border + 1;
@@ -83,7 +83,7 @@ void QuickSort(int left_border, int right_border) {
 			right_index--;
 
 		if (left_index < right_index) {
-			long mem = table[left_index];
+			long long mem = table[left_index];
 			table[left_index] = table[right_index];
 			table[right_index] = mem;
 		}
@@ -112,7 +112,7 @@ void swapPass(int id) {
 			right_index--;
 
 		if (left_index < right_index) {
-			long mem = table[left_index];
+			long long mem = table[left_index];
 			table[left_index] = table[right_index];
 			table[right_index] = mem;
 		}
@@ -130,7 +130,7 @@ void threadQuickSort(int left_border, int right_border, int proc_start, int proc
 		ends[proc_start] = right_border;
 	} else {
 		int size = right_border - left_border + 1;
-		long pivot_ = generatePivot(left_border, right_border, size);
+		long long pivot_ = generatePivot(left_border, right_border, size);
 
 		int step = size / proc;
 		int rem = size % proc;
@@ -162,7 +162,7 @@ void threadQuickSort(int left_border, int right_border, int proc_start, int proc
 
 		for (int k = proc_start; k < proc_start + proc; k++) {
 			for (int i = starts[k]; i < split[k]; i++) {
-				long mem = table[counter];
+				long long mem = table[counter];
 				table[counter] = table[i];
 				table[i] = mem;
 
@@ -196,7 +196,7 @@ void threadQuickSort(int left_border, int right_border, int proc_start, int proc
 
 int main(void) {
 
-	long check_sort[SIZE];
+	long long check_sort[SIZE];
 	int sorted = 1;
 	int num_sorted = 0;
 
@@ -228,7 +228,7 @@ int main(void) {
 
 		if ( SORT_CHECK ) {
 
-			qsort(check_sort, SIZE, sizeof(long), compare);
+			qsort(check_sort, SIZE, sizeof(long long), compare);
 
 			for (int k = 0; k < SIZE; k++) {
 				if (check_sort[k] != table[k]) {
