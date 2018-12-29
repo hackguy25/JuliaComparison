@@ -1,49 +1,64 @@
 #define HAVE_STRUCT_TIMESPEC
 
 #include <stdio.h>
-#include <stdlib.h>  
+#include <stdlib.h> 
 #include <math.h>
 #include <time.h>
-#include <windows.h> 
 #include <algorithm>
 #include "omp.h"
 
 #define THREAD_NUM 8
-#define SIZE 500000
-#define REPEAT 40
-#define SORT_CHECK 1 // 1 - check if sorted --- 0 - ignore
+#define SIZE 2000000
+#define REPEAT 10
+#define SORT_CHECK 0 // 1 - check if sorted --- 0 - not checking
 
-// 
+long table[SIZE];
+long pivot[THREAD_NUM];
 
-int table[SIZE];
 int starts[THREAD_NUM];
 int split[THREAD_NUM];
 int ends[THREAD_NUM];
-int pivot[THREAD_NUM];
+
+unsigned long seed;
+
+unsigned long rand_ulong(void) {
+	unsigned long x = seed;
+	x ^= x << 13;
+	x ^= x >> 17;
+	x ^= x << 5;
+	seed = x;
+	return x;
+}
 
 int compare(const void * a, const void * b) { // FUNCTION FOR DEFAULT QS 
-	return (*(int*)a - *(int*)b);
+	if (*(long*)a - *(long*)b < 0)
+		return -1;
+	if (*(long*)a - *(long*)b > 0)
+		return 1;
+	return 0;
 }
 
 void generateTable() { // INSERT RANDOM INTEGERS IN TABLE TO SORT
-	for (int k = 0; k < SIZE; k++)
-		table[k] = rand();
+	int sign;
+	for (int k = 0; k < SIZE; k++) {
+		sign = 1;
+		if (rand_ulong() % 2 == 0) sign = -1;
+		table[k] = sign * rand_ulong() % 2000000000;
+	}
 }
 
-int generatePivot(int left_border, int right_border, int size) { // GET PIVOT FOR PARTITION
+long generatePivot(int left_border, int right_border, int size) { // GET PIVOT FOR PARTITION
 
-	float pivot = 0;
+	long pivot = 0;
 
 	if (size > 15) {
-		pivot += table[rand() % size + left_border];
-		pivot += table[rand() % size + left_border];
-		pivot += table[rand() % size + left_border];
-		pivot /= 3;
-		return (int)round(pivot);
-	}
-	else {
-		pivot = table[rand() % size + left_border];
-		return (int)pivot;
+		pivot += table[ rand_ulong() % size + left_border]/3;
+		pivot += table[ rand_ulong() % size + left_border]/3;
+		pivot += table[ rand_ulong() % size + left_border]/3;
+		return pivot;
+	} else {
+		pivot = table[ rand_ulong() % size + left_border];
+		return pivot;
 	}
 }
 
@@ -52,7 +67,7 @@ void QuickSort(int left_border, int right_border) {
 	int size = right_border - left_border + 1;
 	if (size < 2) return;
 
-	int pivot = generatePivot(left_border, right_border, size);
+	long pivot = generatePivot(left_border, right_border, size);
 
 	int left_index = left_border - 1;
 	int right_index = right_border + 1;
@@ -68,7 +83,7 @@ void QuickSort(int left_border, int right_border) {
 			right_index--;
 
 		if (left_index < right_index) {
-			int mem = table[left_index];
+			long mem = table[left_index];
 			table[left_index] = table[right_index];
 			table[right_index] = mem;
 		}
@@ -97,7 +112,7 @@ void swapPass(int id) {
 			right_index--;
 
 		if (left_index < right_index) {
-			int mem = table[left_index];
+			long mem = table[left_index];
 			table[left_index] = table[right_index];
 			table[right_index] = mem;
 		}
@@ -113,10 +128,9 @@ void threadQuickSort(int left_border, int right_border, int proc_start, int proc
 	if (proc == 1) {
 		starts[proc_start] = left_border;
 		ends[proc_start] = right_border;
-	}
-	else {
+	} else {
 		int size = right_border - left_border + 1;
-		int pivot_ = generatePivot(left_border, right_border, size);
+		long pivot_ = generatePivot(left_border, right_border, size);
 
 		int step = size / proc;
 		int rem = size % proc;
@@ -137,19 +151,18 @@ void threadQuickSort(int left_border, int right_border, int proc_start, int proc
 		}
 
 		int k;
-#pragma omp parallel for private(k)
+		#pragma omp parallel for private(k)
 		for (k = proc_start; k < proc_start + proc; k++)
 		{
 			swapPass(k);
 		}
-
+		
 		int splitter = starts[proc_start];
 		int counter = starts[proc_start];
 
 		for (int k = proc_start; k < proc_start + proc; k++) {
-
 			for (int i = starts[k]; i < split[k]; i++) {
-				int mem = table[counter];
+				long mem = table[counter];
 				table[counter] = table[i];
 				table[i] = mem;
 
@@ -173,7 +186,7 @@ void threadQuickSort(int left_border, int right_border, int proc_start, int proc
 	}
 	if (init == 0) {
 		int k;
-#pragma omp parallel for private(k)
+		#pragma omp parallel for private(k)
 		for (k = proc_start; k < proc_start + proc; k++)
 		{
 			QuickSort(starts[k], ends[k]);
@@ -183,26 +196,24 @@ void threadQuickSort(int left_border, int right_border, int proc_start, int proc
 
 int main(void) {
 
-	/* INIT VARIABLES FOR SORT CHECKING*/
-	int check_sort[SIZE];
+	long check_sort[SIZE];
 	int sorted = 1;
-	int check_enable = SORT_CHECK;
 	int num_sorted = 0;
 
+	seed = (unsigned long) time(NULL);
 	srand(time(NULL));
+
 	clock_t t1, t2;
 
-	int avg_time = 0;
+	long avg_time = 0;
 
 	printf("QUICKSORT THREADS = %d\nARRAY SIZE = %d\nREPEATS = %d\n\n", THREAD_NUM, SIZE, REPEAT);
-
-	omp_set_num_threads(THREAD_NUM);
 
 	for (int k = 0; k < REPEAT; k++) {
 
 		generateTable();
 
-		if (check_enable) {
+		if( SORT_CHECK ) {
 			for (int k = 0; k < SIZE; k++)
 				check_sort[k] = table[k];
 		}
@@ -211,17 +222,21 @@ int main(void) {
 		threadQuickSort(0, SIZE - 1, 0, 0, 0);
 		t2 = clock();
 
-		avg_time += (int)(t2 - t1);
+		avg_time += (long)(t2 - t1);
 
-		printf("TIME = %d ms\n", (int)(t2 - t1));
+		printf("TIME = %ld ms\n", (long)(t2 - t1));
 
-		if (check_enable) {
+		if ( SORT_CHECK ) {
 
-			qsort(check_sort, SIZE, sizeof(int), compare);
+			qsort(check_sort, SIZE, sizeof(long), compare);
 
-			for (int k = 0; k < SIZE; k++)
-				if (check_sort[k] != table[k])	sorted = 0;
-
+			for (int k = 0; k < SIZE; k++) {
+				if (check_sort[k] != table[k]) {
+					sorted = 0;
+					printf("DIFF AT %d\n", k);
+				}
+				break;
+			}
 			printf("IS SORTED = %d\n", sorted);
 
 			if (sorted) num_sorted++;
@@ -230,8 +245,8 @@ int main(void) {
 	}
 	avg_time /= REPEAT;
 
-	printf("\nAVERAGE %d-THREAD QUICKSORT TIME = %d ms\n", THREAD_NUM, avg_time);
-	if (check_enable) printf("\nSORTED = %d/%d\n", num_sorted, REPEAT);
+	printf("\nAVERAGE %d-THREAD QUICKSORT TIME = %ld ms\n", THREAD_NUM, avg_time);
+	if( SORT_CHECK ) printf("\nSORTED = %d/%d\n", num_sorted, REPEAT);
 
 	getc(stdin); // EMPTY INPUT FOR WAITING
 
