@@ -176,7 +176,7 @@ function adaptiveQS!(src; threads = -1)
     # println(tempArray)
     
     partSizes = [size(i[1])[1] for i in parts_ready]
-    println(partSizes)
+    # println(partSizes)
     
     Threads.@threads for i = 1:size(parts_ready)[1]
             
@@ -210,4 +210,32 @@ function _hitritest()
 
     display(src)
     issorted(src)
+end
+
+function testKPonovitev(k, n)
+
+    sum = 0.0
+    
+    # warm-up
+    a = rand(Int64, n)
+    adaptiveQS!(a)
+
+    a = nothing
+    GC.gc() # explicit garbage collect
+    
+    for i = 1:k
+
+        a = rand(Int64, n)
+        delta = 1000 * (@elapsed adaptiveQS!(a))
+        sum += delta
+
+        a = nothing
+        GC.gc()
+        
+        println(delta)
+    end
+    
+    sum /= k
+
+    println("Povprečno: ", sum)
 end
