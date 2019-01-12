@@ -10,12 +10,14 @@
 
 int main(void) {
 
-	char * file_name = "image_512.png";
+	//char * file_name = "image_512.png";
 	//char * file_name = "image_1024.png";
 	//char * file_name = "image_2048.png";
 	//char * file_name = "image_4096.png";
+    //char * file_name = "image_huge.tif";
+    char * file_name = "image_even_huger.tif";
 
-	FIBITMAP *imageBitmap = FreeImage_Load(FIF_PNG, file_name, 0);
+	FIBITMAP *imageBitmap = FreeImage_Load(FIF_TIFF, file_name, 0);
 	FIBITMAP *imageBitmapGrey = FreeImage_ConvertToGreyscale(imageBitmap);
 
 	int width = FreeImage_GetWidth(imageBitmapGrey);
@@ -41,10 +43,6 @@ int main(void) {
 		49, 64, 78, 87,103,121,120,101,
 		72, 92, 95, 98,112,100,103, 99
 	}; // WARNING !! 1D ARRAY - NOT 2D
-
-	clock_t t1, t2;
-	printf("GPU start...\n");
-	t1 = clock();
 
 	// GPU CODE
 
@@ -74,27 +72,32 @@ int main(void) {
 	cl_device_id	device_id[10];
 	cl_uint			ret_num_devices;
 
-	ret = clGetDeviceIDs(platform_id[2], CL_DEVICE_TYPE_GPU, 10, device_id, &ret_num_devices);
+	ret = clGetDeviceIDs(platform_id[0], CL_DEVICE_TYPE_GPU, 10, device_id, &ret_num_devices);
+    printf("%d\n", ret);
 
 	cl_context context = clCreateContext(NULL, 1, &device_id[0], NULL, NULL, &ret);
 	cl_command_queue command_queue = clCreateCommandQueue(context, device_id[0], 0, &ret);
 
+    cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, NULL, &ret);
+
+    ret = clBuildProgram(program, 1, &device_id[0], NULL, NULL, NULL);
+
+    size_t build_log_len;
+    char *build_log;
+    ret = clGetProgramBuildInfo(program, device_id[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_len);
+    build_log = (char *)malloc(sizeof(char)*(build_log_len + 1));
+    ret = clGetProgramBuildInfo(program, device_id[0], CL_PROGRAM_BUILD_LOG,
+        build_log_len, build_log, NULL);
+    printf("%s\n", build_log);
+    free(build_log);
+
+    clock_t t1, t2;
+    printf("GPU start...\n");
+    t1 = clock();
+
 	cl_mem imagein_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, height * width * sizeof(unsigned char), image_in, &ret);
 	cl_mem qmatrix_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 64 * sizeof(unsigned int), quantization_matrix, &ret);
 	cl_mem imageout_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY, height * width * sizeof(unsigned char), NULL, &ret);
-
-	cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, NULL, &ret);
-
-	ret = clBuildProgram(program, 1, &device_id[0], NULL, NULL, NULL);
-
-	size_t build_log_len;
-	char *build_log;
-	ret = clGetProgramBuildInfo(program, device_id[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_len);
-	build_log = (char *)malloc(sizeof(char)*(build_log_len + 1));
-	ret = clGetProgramBuildInfo(program, device_id[0], CL_PROGRAM_BUILD_LOG,
-		build_log_len, build_log, NULL);
-	printf("%s\n", build_log);
-	free(build_log);
 
 	cl_kernel kernel = clCreateKernel(program, "jpeg", &ret);
 
@@ -107,12 +110,12 @@ int main(void) {
 	ret |= clSetKernelArg(kernel, 3, sizeof(cl_int), (void *)&width);
 	ret |= clSetKernelArg(kernel, 4, sizeof(cl_int), (void *)&height);
 
-
 	size_t global_item_size[2] = { width, height };
 	size_t local_item_size[2] = { WORKGROUP_SIZE, WORKGROUP_SIZE };
 
-	ret = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);
-	ret = clEnqueueReadBuffer(command_queue, imageout_mem_obj, CL_TRUE, 0, height * width * sizeof(unsigned char), image_out, 0, NULL, NULL);
+    ret = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);
+	
+    ret = clEnqueueReadBuffer(command_queue, imageout_mem_obj, CL_TRUE, 0, height * width * sizeof(unsigned char), image_out, 0, NULL, NULL);
 
 	ret = clFlush(command_queue);
 	ret = clFinish(command_queue);
