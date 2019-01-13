@@ -34,11 +34,11 @@
 \def\keywords#1{\gdef\@keywords{#1}}
 \def\@keywords{???}
 
-\def\received#1{\gdef\@received{#1}}
-\def\@received{???}
+%\def\received#1{\gdef\@received{#1}}
+%\def\@received{???}
 
-\def\review#1{\gdef\@review{#1}}
-\def\@review{???}
+%\def\review#1{\gdef\@review{#1}}
+%\def\@review{???}
 
 %\def\small{\@setsize\small{9pt}\ixpt\@ixpt
 %\abovedisplayskip 8.5pt plus 3pt minus 4pt\belowdisplayskip \abovedisplayskip
@@ -79,8 +79,8 @@
 % Naslovnica
 \def\maketitle{\clearpage\thispagestyle{empty}
 
-\@topnewpage[\vbox to 0pt{\offinterlineskip\vss\hbox{\footnotesize\scshape \@ArtJournalText 78(x): \pageref{start}--\pageref{finish}, 2011}\vskip.5mm\hbox{\footnotesize\scshape Existing separate English edition}\vskip4mm}
-\vskip10mm
+\@topnewpage[%\vbox to 0pt{\offinterlineskip\vss\hbox{\footnotesize\scshape \@ArtJournalText 78(x): \pageref{start}--\pageref{finish}, 2011}\vskip.5mm\hbox{\footnotesize\scshape Existing separate English edition}\vskip4mm}
+%\vskip10mm
 \vbox{\hsize=145mm
 \begin{raggedright}
 {\LARGE\bf\@title}\\[8mm]
@@ -91,8 +91,8 @@
 {{\small\bf \@KeyWordsText}{\small\@keywords}}\\[5mm]
 }]
 %\vskip5mm}] %peter 10mm -> 5mm
-\footnotetext{\hspace*{-1.8em}\it\@ArtRecText\@received\\
-	      \@ArtRevText\@review}
+%\footnotetext{\hspace*{-1.8em}\it\@ArtRecText\@received\\
+%	      \@ArtRevText\@review}
 }
 
 \def\footnoterule{\kern-3\p@

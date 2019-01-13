@@ -32,7 +32,9 @@
 \authors{Jan Pelicon, Blaž Rojc}
 \address{Univerza v Ljubljani, Fakulteta za računalništvo in informatiko, Večna pot 113, 1000 Ljubljana, Slovenija}
 
-\abstract{TODO}
+\abstract{Primerjala sva jezika C/C++ in Python z alternativno izbiro - jezikom Julia.
+Ugotovila sva, da se po hitrosti bliža C-ju, prinaša pa fleksibilnost in prijaznost Pythona.
+Težava je le v relativni novosti jezika, kar se kaže kot nedokončanost določenih delov.}
 
 \keywords{primerjava programskih jezikov, porazdeljeni programski jeziki, hitrost izvajanja, prijaznost do uporabnika}
 
@@ -48,8 +50,8 @@
 \IEEEpeerreviewmaketitle
 
 % Naslov in kratek povzetek v angleščini
-\english{Analisys and comparison of the Julia programming language}
-{TODO}
+% \english{Analisys and comparison of the Julia programming language}
+% {TODO}
 
 \section{Uvod}
 
@@ -57,7 +59,7 @@ Porazdeljeno programiranje predstavlja težavo, s katero se večina programerjev
 V čist, striktno determinističen tok programiranja vnaša nepredvidljivost, simultane dogodke, neurejenost in kup varnostnih ter pravilnostnih lukenj.
 K zahtevnosti programiranja pa pripomore tudi slaba podprtost porazdeljenega programiranja v bolj permisivnih programskih jezikih - tako Python kot
 	JavaScript zahtevata daljšo poglobitev v njune sisteme, ki omogočajo distribucijo problemov po več jedrih ali procesorjih, poleg tega pa zaradi
-	svojih omejitev ne morata omogočiti tako nizkonivojnega nadzora kot C.
+	svojih omejitev ne morata omogočiti tako nizkonivojnega nadzora in optimizacije kot C.
 
 Tu vstopi Julia, dinamičen, prevajan jezik, prvotno namenjen potrebam numerične analize in računske znanosti, a primeren za obilico problemov, kjer je
 	hitrost izvajanja tako pomemben faktor kot enostavnost programiranja.\cite{julia-site}
@@ -76,7 +78,7 @@ Je dinamičen programski jezik v polnem pomenu besedne zveze.
 Med drugim omogoča dinamično izpeljavo podatkovnih tipov, modificiranje in izvajanje kode iz besedilnih nizov,\cite{julia-metaprogramming} refleksijo, makre in večmetodnost
 	funkcij.
 
-V času pisanja tega dokumenta je jezik tudi že dosegel različico 1.0, kljub temu pa še ni popolnoma stabilen.
+V času pisanja tega dokumenta je jezik tudi že dosegel različico 1.0, a kljub temu še ni popolnoma stabilen.
 Kot bo opisano kasneje ostaja še velik del obljubljene funkcionalnosti neimplementirane, medtem ko ima stabilnost in hitrost obstoječe kode višjo
 	prioriteto.
 
@@ -86,13 +88,27 @@ Julia podpira več oblik delitve dela.
 Osredotočili se bomo na metode najpodobnejše tistim, ki smo jih obravnavali pri predmetu PS: eksplicitna delitev dela med procesorska jedra in pošiljanje
 	dela koprocesorjem - GPE.
 
-Julia v teoriji podpira delitev dela med procesorska jedra na več načinov, ki se večinoma delijo v dve skupini, na osnovi niti in na osnovi procesov.
+Julia v teoriji podpira delitev dela med procesorska jedra na več načinov.
+Ti so razdeljeni v dve skupini, na osnovi niti in na osnovi procesov.
+
+\subsection{Večnitenje}
 
 Večnitenje je v Julii eksperimentalna funkcija.
-Uporabnost je v času pisanja zelo omejena, na voljo sta le makra “@threads”, ki na več nitih paralelno izvede “for” zanko, in “@threadcall”, ki funkcijo v
-	jeziku C pokliče v ločeni niti.\cite{julia-multithreading}
+
+Uporabnost je v času pisanja zelo omejena, na voljo sta le makra \texttt{@threads}, ki na več nitih paralelno izvede \texttt{for} zanko, in
+	\texttt{@threadcall}, ki funkcijo v jeziku C pokliče v ločeni niti.\cite{julia-multithreading}
 Druga možnost zahteva pisanje dela programa v različnem programskem jeziku in se ji bomo izognili.
 Prva pa omogoča določeno stopnjo paralelizacije, kljub temu da morda ni tako učinkovita kot v drugih programskih jezikih.
+
+Število niti, s katerimi naj Julia razpolaga, določimo s sistemsko spremenljivko \texttt{JULIA\_NUM\_THREADS}.
+Problem, ki ga želimo paralelizirati, predstavimo kot \texttt{for} zanko, ki iterira nad problemi, ki jih želimo reševati vzporedno.
+Nad to zanko kličemo makro \texttt{@threads}, ki jo porazdeli med razpoložljive niti.
+
+Ta sistem ni primeren za kompleksnejše probleme, ki zahtevajo sinhronizacijo med nitmi.
+Če je to potrebno, je bolje problem razdeliti na več podproblemov in vsakega reševati v ločeni paralelizirani \texttt{for} zanki.
+Zaradi eksperimentalnega stanja niti je podpora pri razhroščevanju pomanjkljiva ali celo neobstoječa.\cite{julia-thread-problems}
+
+\subsection{Večprocesnost}
 
 Večprocesnost je veliko bolj fleksibilna možnost.
 Procesi se v Julii lahko dodajajo poljubno med izvajanjem, komunikacija pa poteka prek klicev iz glavnega procesa v ostale.
@@ -143,7 +159,8 @@ TODO
 
 Za primerjavo jezikov sva implementirala dva algoritma.
 
-Prvi, Adaptive Quick Sort je paralelna implementacija sortirnega algoritma Quick Sort.
+Prvi, Adaptive Quick Sort, je paralelna implementacija sortirnega algoritma Quick Sort.
+Izvaja se na vseh razpoložljivih nitih sistema.
 Zasnovan je tako, da paralelno izvede čim večji del računanja, tudi deljenje in združevanje podatkov.
 
 Drugi simulira JPEG kompresijo.
@@ -177,20 +194,21 @@ Po koncu vseh rekurzivnih klicev je tabela sortirana.
 
 Ta implementacija zahteva relativno veliko koordinacije med nitmi in usklajevanja velikosti delov.
 Posledično zahteva več premisleka in dela kot le paralelizacija zanke.
-Zaradi tega ta algoritem pokaže prednosti in slabosti jezikov ko pride do možnosti paralelizacije.
+Ta algoritem dobro pokaže prednosti in slabosti jezikov ko pride do fleksibilnosti paralelizacije.
 
 \subsection{JPEG}
 
-Format JPEG\footnote{https://en.wikipedia.org/wiki/JPEG} za zmanjševanje količine podatkov, ki ga slike zasedajo, izrablja lastnosti človeškega vida -
-	ljudje težje zaznamo spremembe pri visokofrekvenčnih komponentah slike kot pri nizkofrekvenčnih.
+Format JPEG\footnote{https://en.wikipedia.org/wiki/JPEG} je eden izmed najbolj razširjenih digitalnih formatov za shranjevanje slik.
+Za zmanjševanje količine podatkov, ki ga slike zasedajo, izrablja lastnosti človeškega vida - ljudje težje zaznamo spremembe pri visokofrekvenčnih
+	komponentah slike kot pri nizkofrekvenčnih.
 
 Kodiranje je sestavljeno iz treh glavnih delov, preslikave 8x8 kosov slike v frekvenčno domeno, kvantizacije in končnega stiskanja.
 
-Preslikava je navadno diskretna kosinusna transformacija.[x]
+Preslikava je navadno diskretna kosinusna transformacija.\footnote{https://en.wikipedia.org/wiki/Discrete\_cosine\_transform}
 Ta je implementirana kot množenje matrike vhodnih podatkov z matriko realnih koeficientov.
 
 Kvantizacija poteka v treh korakih.
-Najprej se podatki pomnožijo s kvantizacijsko matriko.
+Najprej se podatki delijo z ustreznimi vrednostmi v kvantizacijski matriki.
 Ta določa, katere frekvence naj se bolje ohranijo.
 Nato se elementi matrike zaokrožijo na cela števila med -128 in 127.
 Nazadnje pa se še matrika pretvori v vektor dolžine 64 prek poševnega cik-cak vzorca:
@@ -206,8 +224,8 @@ Navadno se uporablja Huffmanovo kodiranje.\footnote{https://en.wikipedia.org/wik
 Pri dobro izbrani kvantizacijski matriki se večina ničelnih elementov nahaja na koncu vektorja, kar lahko uporabimo, da podatke še bolj stisnemo.
 
 Preslikava in prva dva koraka kvantizacije sta zelo primerna za izvajanje na GPE.
-Algoritem simulira popačenje, ki se pojavi pri stiskanju, tako, da izvede DCT, množenje s kvantizacijsko matriko in zaokroževanje, nato pa izvede obraten
-	postopek, podatke množi z inverzom kvantizacijske matrike in izvede inverzen DCT.
+Algoritem simulira popačenje, ki se pojavi pri stiskanju, tako, da izvede DCT, deljenje s kvantizacijskimi vrednostmi in zaokroževanje, nato pa izvede
+	obraten postopek, podatke množi s kvantizacijskimi vrednostmi in izvede inverzen DCT.
 
 Ta algoritem je relativno enostaven pri implementaciji, je pa dovolj zahteven, da prikaže razlike med hitrostmi prevajanja in izvajanja programov na GPE
 	med različnimi jeziki.
@@ -230,7 +248,7 @@ Programi v jeziku Julia so se zaganjali v ukaznem pozivu Powershell, Julia verzi
 \subsection{Adaptive Quick Sort}
 
 Algoritem očitno izpostavi obseg razlik hitrosti posameznih jezikov in kako velikost podatkov vpliva nanje.
-Programi so bili testirani na eksponento povečujoči tabeli naključno generiranih predznačenih 64-bitnih števil.
+Programi so bili testirani na eksponento povečujoči tabeli naključno generiranih predznačenih 64-bitnih celih števil.
 Za vsako velikost se je vsak program izvedel petkrat, vsakokrat z na novo generiranimi števili.
 Največja tabela je vsebovala 200 milijonov elementov.
 Končne vrednosti so povprečja petih izvajanj.
@@ -238,27 +256,44 @@ Končne vrednosti so povprečja petih izvajanj.
 Vsak program je bil spisan na način, ki je minimiziral število nepotrebnih dostopov do pomnilnika in hkrati kar najbolje sledil prej opisanemu načrtu.
 V primeru Pythona in Julie je jezik omejeval ta aspekt optimizacije, kar pa bo obravnavano kasneje.
 
+\begin{figure}[h]
+\includegraphics[width=0.5\textwidth]{aqs_speed}
+\caption{Čas sortiranja tabele}
+\end{figure}
+
 Med pthreads in OpenMP je razlika največja pri majhnih tabelah, kjer je OpenMP veliko hitrejši.
 Ta razlika se bolj ali manj izniči pri tabelah z več kot 20 milijoni elementov.
-
-[graf primerjave pthreads, OpenMP]
 
 Julia je le slabo magnitudo počasnejša.
 Za majhne tabele je skoraj tako hitra kot pthreads.
 Med 2 in 20 milijoni elementov počasi izgublja hitrost.
 Pri 200 milijonih pa nastopi težava s količino pomnilnika, zato se izvajanje še dodatno upočasni.
 
-[graf primerjave C++, Julia]
-
 Python je od vseh jezikov najpočasnejši.
 Pri 100 milijonih elementov doseže razmerje časa izvajanja v Pythonu s časom izvajanja s pthreads faktor 250.
 Zaradi zelo dolgega časa testiranja pri tabeli velikosti 100 milijonov - približno 1 uro in 15 minut - se za 200 milijonov elementov ni testiralo.
 
-[graf primerjave vseh]
-
 \subsection{JPEG}
 
-TODO
+Za razliko od sortirnega algoritma sta tu implementaciji skoraj enakovredni.
+Programa sta bila testirana na čedalje večjih kvadratnih slikah, velikosti dimenzij so bile naraščajoče potence števila 2.
+Za vsako velikost sta se programa najprej dvakrat zagnala brez merjenja, nato pa je sledilo 5 meritev.
+Končne vrednosti so povprečje teh meritev.
+
+Programa sta semantično skoraj identična.
+Edine razlike so sintaktične, kjer se jezika razlikujeta.
+Sicer pa je postopek izvajanja popolnoma enak, noben program ni optimiziran bolj kot drugi.
+
+\begin{figure}[h]
+\includegraphics[width=0.45\textwidth]{jpeg_speed}
+\caption{Čas simulacije JPEG popačenja brez prevajanja}
+\end{figure}
+
+Implemetacija CUDA vmesnika v jeziku Julia je v hitrosti za velike slike skoraj popolnoma primerljiva s C implementacijo vmesnika OpenCL.
+Če zanemarimo čas prevajanja, je pri majhnih slikah Julia kar 15-krat hitrejša, ker med klici ohranja naložene funkcije v spominu GPE.
+
+Zgodba se popolnoma obrne, če upoštevamo le prvi zagon skupaj s prevajanjem.
+V okolju Visual studio od začetka prevajanja do konca shranjevanja preteče le slabih 5 sekund, ukazni poziv Julie pa porabi kar pol minute.
 
 \section{Zahtevnost in izkušnja programiranja}
 
@@ -271,15 +306,52 @@ TODO
 
 \subsection{Python}
 
-TODO
+Kodiranje je v Pythonu izjemno uporabniku prijazno.
+
+Spremenljivke pridobijo tip na podlagi argumentov, ki jih prejmejo.
+Če želimo spremeniti tip spremenljivke med izvajanjem, ji le priredimo novo vrednost.
+Funkcije lahko definiramo med izvajanjem programa, prejmejo lahko argumente poljubnega tipa.
+
+Če potrebujemo dodatno funkcionalnost, nam je na voljo vgrajen upravitelj paketov \texttt{pip}.
+Ta nam omogoča prenos in namestitev več kot 160.000 zunanjih modulov, ki se pogosto posodabljajo.
+
+Interpreter javi napako med izvajanjem in izpiše lokacijo v programu, kjer se je zgodila.
+Zaradi dobre dokumentiranosti napak in ogromne skupnosti je iskanje rešitev enostavno.
+
+Zaradi relativno visokega nivoja abstrakcije te prednosti pridejo na račun manjše hitrosti.
+Poleg tega programerju ne omogoča zelo nizkonivojnega nadzora nad izvajanjem (vsaj CPython implementacija).
+Zaradi tega in GIL je Python neprimeren kot jezik za visoko učinkovito računanje, vsaj v čisti obliki brez klicev v zunanje funkcije.
 
 \subsection{Julia}
 
-TODO
+Julia predstavlja zanimivo sredino med C in Pythonom.
+Zaradi prevajanja v zbirni jezik in optimizacije se v večini situacij po hitrosti približuje C-ju.
+Hkrati pa so nam na voljo polni izpisi napak in dobra dokumentacija.
+Jezik izpeljuje tipe, funkcije lahko defeniramo med izvajanjem, dopolnjujemo lahko vgrajene module, na voljo je vgrajen upravitelj paketov itd.
+
+Največja hiba jezika trenutno je to, da ni še dokončan.
+Veliko funkcionalnosti, ki je obljubljena kot del jezika, je še nedokončane ali v eksperimentalnem stanju.
+
+Primer nedokončane funkcionalnosti so niti.
+Trenutno je makro \texttt{@threads} edini način za delitev dela med več niti.
+V prihodnosti naj bi se spisal vmesnik, ki bo omogočal poljubno zaganjanje niti, ampak trenutno so implementirani le mutex-i, ki pa sami po sebi niso
+	uporabni.
+
+Poleg tega modul \texttt{OpenCL.jl} v času pisanja ni podpiral še Julie verzije 1.0.
+Zaragi tega je bila implementacija JPEG simulacije spisana prek vmesnika CUDA.
 
 \section{Sklep}
 
-TODO
+Julia je v konceptu zelo zanimiv jezik.
+Prinaša obljubo hitrosti C-ja z enostavnostjo in prijaznostjo Pythona.
+Večinoma se teh obljub tudi drži, kolikor je le možno.
+
+Njena največja hiba je nedokončanost, kar pa ni presenetljivo, saj je šele lani dosegla izdajo 1.0.
+Razvoj jezika je zelo hiter, tako zaradi fleksibilnosti jezika samega kot tudi vztrajno povečujoče se skupnosti.
+
+Navdušenost nad jezikom Julia ni neupravičeno.
+Prinaša svež pristop do računanja, modularen, prijazen in hiter.
+Potrebuje le vztrajnost razvijalcev in čas.
 
 \begin{thebibliography}{99}
 
@@ -296,7 +368,10 @@ TODO
 \bibitem{julia-multithreading} Multi-Threading (Experimental). \emph{The Julia Language}. [Online] Dosegljivo:
 	https://docs.julialang.org/\allowbreak en/v1/\allowbreak manual/parallel-computing/\allowbreak index.html\allowbreak \#Multi-Threading-
 	(Experimental). [Dostopano \today].
-	
+
+\bibitem{julia-thread-problems} hackguy. (2018). Threading issues. \emph{JuliaLang (discourse)}. [Online] Dosegljivo:
+	https://discourse.julialang.org/t/threading-issues/18758. [Dostopano \today].
+
 \bibitem{python-tiobe} TIOBE Index for January 2019. \emph{TIOBE Index}. [Online] Dosegljivo: https://www.tiobe.com/tiobe-index/. [Dostopano \today].
 
 \bibitem{python-pypl} Pierre Carbonnelle (2018). PYPL PopularitY of Programming Language. [Online] Dosegljivo: http://pypl.github.io/PYPL.html.
