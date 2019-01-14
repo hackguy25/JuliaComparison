@@ -146,35 +146,34 @@ Tako kot v drugih programskih jezikih je tudi v Pythonu delo s procesi precej po
 \section{Primerjava z jezikom C/C++}
 
 C je učinkovit nizkonivojski programski jezik, katerega zansova leži zelo blizu strojne kode. 
-Njegov naslednik C++, ki se je razvil kot njegova razširitev, ohranja hitrost in prednost, da se
-prevede v strojni jezik kar omogoča, da program izvaja bistveno hitreje od ostalih programskih
-jezikov. Prav tako dopušča precej svobode pri ravnanju s pomnilnikom pri čemer lahko dober 
-programer to izkoristi v svoj prid. Slabost tega je, da moramo biti zelo pazljivi pri pisanju,
-če se hočemu izogniti mučnemu in dolgotrajnemu razhroščevanju. 
+Njegov naslednik C++, ki se je razvil kot njegova razširitev, ohranja hitrost in prednost, da se prevede v strojni jezik, kar omogoča, da program izvaja
+	bistveno hitreje od ostalih programskih jezikov.
+Prav tako dopušča precej svobode pri ravnanju s pomnilnikom pri čemer lahko dober programer to izkoristi v svoj prid.
+Slabost tega je, da moramo biti zelo pazljivi pri pisanju, če se hočemu izogniti mučnemu in dolgotrajnemu razhroščevanju. 
 
-Omeniti moramo tudi vrsto različnih knjižnic in API-jev, ki uporabniku olajšajo delo in široko podporo,
-ki jo uživa C++. Vendar kljub vsem prednostim, pa delo z njim včasih težavno, saj moramo večino
-dela postoriti sami medtem, ko so višjenivojske funkcije in udobnost programiranja značilnost 
-pri nekaterih drugih jezikih. 
+Omeniti moramo tudi vrsto različnih knjižnic in API-jev, ki uporabniku olajšajo delo in široko podporo, ki jo uživa C++.
+Vendar kljub vsem prednostim, pa delo z njim včasih težavno, saj moramo večino dela postoriti sami, medtem ko so višjenivojske funkcije in udobnost
+	programiranja stalnica pri nekaterih drugih jezikih. 
 
 \subsection{pthreads}
 
-Pri C++ imamo velik izbor knjižnic za paralelno procesiranje in nitenje. Nekatere omogočaje več
-svobode pri upravljanju z njimi druge pa delitev dela poenostavijo in optimizirajo. 
+Pri C++ imamo velik izbor knjižnic za paralelno procesiranje in nitenje.
+Nekatere omogočaje več svobode pri upravljanju z njimi, druge pa delitev dela poenostavijo in optimizirajo. 
 
-POSIX Threads ali krajše pthreads so nizkonivojski API za delo z nitmi. Dopušča nam veliko nadzora in modularnosti
-za ceno nekoliko kompleksnejše implementacije. Pazljivi moramo biti predvsem z konfliktnimi dostopi
-in sinhronizacijo. Uporabniku omogoča nadzor nad nitjo (kreiranje, uničevanje, odklapljanje,...), upravljanje ključavnic,
-sinhronizacijo niti z uporabo zapornic in pogojne spremenljivke.
+POSIX Threads ali krajše pthreads so nizkonivojski API za delo z nitmi.
+Dopušča nam veliko nadzora in modularnosti za ceno nekoliko kompleksnejše implementacije.
+Pazljivi moramo biti predvsem z konfliktnimi dostopi in sinhronizacijo.
+Uporabniku omogoča nadzor nad nitjo (kreiranje, uničevanje, odklapljanje,...), upravljanje ključavnic, sinhronizacijo niti z uporabo zapornic in pogojne
+	spremenljivke.
 
 \subsection{OpenMP}
 
 Višjenivosjki OpenMP (Open Multi-Processing) predstavlja nekoliko drugačen način razporejanja dela.
-Je zbirka direktiv prevajalniku in je nekoliko lažje nastavljiv in sintaktično krajši in bolj enostaven 
-v primerjavi s pthreads. Čeprav je malo počasnejši in ne more delovati z deljenim pomnilnikom,
-še vedno ponuja zelo zanesljivo in precej hitro vzporedno procesiranje.
-Uporabja posebne oznake (#pragma), ki služijo kot navodila prevajalniku in 
-zagotavlja široko izbiro visoko in nižjenivojskih opcij.
+
+Je zbirka direktiv prevajalniku in je nekoliko lažje nastavljiv, sintaktično krajši ter bolj enostaven v primerjavi s pthreads.
+Uporabja posebne oznake (\#pragma), ki služijo kot navodila prevajalniku in zagotavlja široko izbiro visoko in nižjenivojskih opcij.
+
+Čeprav je malo počasnejši in ne more delovati z deljenim pomnilnikom, še vedno ponuja zelo zanesljivo in precej hitro vzporedno procesiranje.
 
 \section{Algoritma}
 
@@ -326,15 +325,13 @@ Vse privarčevane sekunde ne pomenijo nič, če mora programer ure in ure razhro
 C/C++ sta znana po svoji hitrosti in široki uporabnosti.
 
 Večina jezikov deluje podobno in so bili modelirani prav po njiju.
-Medtem ko C podpira uporabu struktur in predstavlja surovo osnovo je C++ objektno orientiran ter je
-njegova nadgradnja in razširitev. 
+Medtem ko C podpira uporabu struktur in predstavlja surovo osnovo je C++ objektno orientiran ter je njegova nadgradnja in razširitev. 
 
 Izjemna podpora, kopica knjižnic in razširitev, služijo kot orodje za lažje delo.
-Zaradi manjše abstrakcije v primerjavi z javo in pythonom je včasih programer prikrajšan 
-na času in preprostosti kode.
+Zaradi manjše abstrakcije v primerjavi z javo in pythonom je včasih programer prikrajšan na času in preprostosti kode.
 
-V kolikor smo pripravljeni vložiti trud za kompleksnejšo rešitev problema lahko veliko pridobimo z optimizacijo
-in posledično dosežemo večje hitrosti pri izvajanju.
+V kolikor smo pripravljeni vložiti trud za kompleksnejšo rešitev problema lahko veliko pridobimo z optimizacijo in posledično dosežemo večje hitrosti pri
+	izvajanju.
 
 \subsection{Python}
 
