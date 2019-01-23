@@ -85,7 +85,7 @@ Kot bo opisano kasneje ostaja še velik del obljubljene funkcionalnosti neimplem
 \section{Porazdeljeno računanje}
 
 Julia podpira več oblik delitve dela.
-Osredotočili se bomo na metode najpodobnejše tistim, ki smo jih obravnavali pri predmetu PS: eksplicitna delitev dela med procesorska jedra in pošiljanje
+Osredotočili se bomo na metode podobne tistim, ki smo jih obravnavali pri predmetu PS: eksplicitna delitev dela med procesorska jedra in pošiljanje
 	dela koprocesorjem - GPE.
 
 Julia v teoriji podpira delitev dela med procesorska jedra na več načinov.
@@ -97,11 +97,11 @@ Večnitenje je v Julii eksperimentalna funkcija.
 
 Uporabnost je v času pisanja zelo omejena, na voljo sta le makra \texttt{@threads}, ki na več nitih paralelno izvede \texttt{for} zanko, in
 	\texttt{@threadcall}, ki funkcijo v jeziku C pokliče v ločeni niti.\cite{julia-multithreading}
-Druga možnost zahteva pisanje dela programa v različnem programskem jeziku in se ji bomo izognili.
+Druga možnost zahteva pisanje dela programa v drugem programskem jeziku in se ji bomo izognili.
 Prva pa omogoča določeno stopnjo paralelizacije, kljub temu da morda ni tako učinkovita kot v drugih programskih jezikih.
 
 Število niti, s katerimi naj Julia razpolaga, določimo s sistemsko spremenljivko \texttt{JULIA\_NUM\_THREADS}.
-Problem, ki ga želimo paralelizirati, predstavimo kot \texttt{for} zanko, ki iterira nad problemi, ki jih želimo reševati vzporedno.
+Problem, ki ga želimo paralelizirati, predstavimo kot \texttt{for} zanko, ki iterira in razdeli delo, ki ga želimo reševati vzporedno.
 Nad to zanko kličemo makro \texttt{@threads}, ki jo porazdeli med razpoložljive niti.
 
 Ta sistem ni primeren za kompleksnejše probleme, ki zahtevajo sinhronizacijo med nitmi.
@@ -111,7 +111,7 @@ Zaradi eksperimentalnega stanja niti je podpora pri razhroščevanju pomanjkljiv
 \subsection{Večprocesnost}
 
 Večprocesnost je veliko bolj fleksibilna možnost.
-Procesi se v Julii lahko dodajajo poljubno med izvajanjem, komunikacija pa poteka prek klicev iz glavnega procesa v ostale.
+Procesi se v Juliji lahko dodajajo poljubno med izvajanjem, komunikacija pa poteka prek klicev iz glavnega procesa v ostale.
 Največja ovira tega pristopa pa je potreba po eksplicitnem podajanju podatkov med procesi, ki poleg dodane kompleksnosti prinaša še dodatno zahtevnost
 	izvajanja in počasnejše računanje.
 
@@ -172,11 +172,15 @@ Višjenivosjki OpenMP (Open Multi-Processing) predstavlja nekoliko drugačen na�
 
 Je zbirka direktiv prevajalniku in je nekoliko lažje nastavljiv, sintaktično krajši ter bolj enostaven v primerjavi s pthreads.
 Uporabja posebne oznake (\#pragma), ki služijo kot navodila prevajalniku in zagotavlja široko izbiro visoko in nižjenivojskih opcij.
+Pomembna lastnost pragme je tudi da v kolikor jo prevajalnik ne prepozna, preprosto nadaljuje z izvajanjem programa. Ta možnost 
+omogoča programerju lažje razhroščevanje kot tudi enostavno določanje kaj se bo izvajalo paralelno. 
 
-Čeprav je malo počasnejši in ne more delovati z deljenim pomnilnikom, še vedno ponuja zelo zanesljivo in precej hitro vzporedno procesiranje.
+
+
+
+Njegova hitrost v nekaterih primerih prekaša hitrost pthreads ali pa je približno enaka. Poleg preprostosti ponuja zelo zanesljivo in hitro vzporedno procesiranje.
 
 \section{Algoritma}
-
 Za primerjavo jezikov sva implementirala dva algoritma.
 
 Prvi, Adaptive Quick Sort, je paralelna implementacija sortirnega algoritma Quick Sort.
