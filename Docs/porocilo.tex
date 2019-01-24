@@ -78,14 +78,14 @@ Je dinamičen programski jezik v polnem pomenu besedne zveze.
 Med drugim omogoča dinamično izpeljavo podatkovnih tipov, modificiranje in izvajanje kode iz besedilnih nizov,\cite{julia-metaprogramming} refleksijo, makre in večmetodnost
 	funkcij.
 
-V času pisanja tega dokumenta je jezik tudi že dosegel različico 1.0, a kljub temu še ni popolnoma stabilen.
-Kot bo opisano kasneje ostaja še velik del obljubljene funkcionalnosti neimplementirane, medtem ko ima stabilnost in hitrost obstoječe kode višjo
+V času, ko sva pisala dokument, je jezik že dosegel različico 1.0, a kljub temu še ni popolnoma stabilen.
+Kot sva opisala kasneje, ostaja še velik del obljubljene funkcionalnosti neimplementirane, medtem ko ima stabilnost in hitrost obstoječe kode višjo
 	prioriteto.
 
 \section{Porazdeljeno računanje}
 
 Julia podpira več oblik delitve dela.
-Osredotočili se bomo na metode podobne tistim, ki smo jih obravnavali pri predmetu PS: eksplicitna delitev dela med procesorska jedra in pošiljanje
+Osredotočila sva se na metode podobne tistim, ki smo jih obravnavali pri predmetu porazdeljeni sistemi: eksplicitna delitev dela med procesorska jedra in pošiljanje
 	dela koprocesorjem - GPE.
 
 Julia v teoriji podpira delitev dela med procesorska jedra na več načinov.
@@ -93,11 +93,11 @@ Ti so razdeljeni v dve skupini, na osnovi niti in na osnovi procesov.
 
 \subsection{Večnitenje}
 
-Večnitenje je v Julii eksperimentalna funkcija.
+Večnitenje je v Juliji eksperimentalna funkcija.
 
-Uporabnost je v času pisanja zelo omejena, na voljo sta le makra \texttt{@threads}, ki na več nitih paralelno izvede \texttt{for} zanko, in
+Uporabnost je bila v času pisanja zelo omejena, saj sta bila na voljo le makra \texttt{@threads}, ki na več nitih paralelno izvede \texttt{for} zanko, in
 	\texttt{@threadcall}, ki funkcijo v jeziku C pokliče v ločeni niti.\cite{julia-multithreading}
-Druga možnost zahteva pisanje dela programa v drugem programskem jeziku in se ji bomo izognili.
+Druga možnost zahteva pisanje dela programa v drugem programskem jeziku, vendar sva se ji izognila.
 Prva pa omogoča določeno stopnjo paralelizacije, kljub temu da morda ni tako učinkovita kot v drugih programskih jezikih.
 
 Število niti, s katerimi naj Julia razpolaga, določimo s sistemsko spremenljivko \texttt{JULIA\_NUM\_THREADS}.
@@ -123,7 +123,7 @@ Je anekdotno eden najlažjih jezikov za popolne začetnike, omogoča pa tudi re�
 
 Njegova največja hiba je relativna počasnost.
 Python je interpretiran jezik, ki se najprej prevede v bitno kodo, nato pa izvaja v virtualnem stroju.
-Posledično se kompleksni programi izvajajo veliko počasneje kot v C-ju.
+Posledično se kompleksni programi izvajajo veliko počasneje kot v jeziku C.
 
 Julia ohranja večino prednosti Pythona, predvsem dinamičnost in prijaznost do programerja, prinese pa prednost hitrega izvajanja neposredno prevedene
 	kode.
@@ -175,9 +175,6 @@ Uporabja posebne oznake (\#pragma), ki služijo kot navodila prevajalniku in zag
 Pomembna lastnost pragme je tudi da v kolikor jo prevajalnik ne prepozna, preprosto nadaljuje z izvajanjem programa. Ta možnost 
 omogoča programerju lažje razhroščevanje kot tudi enostavno določanje kaj se bo izvajalo paralelno. 
 
-
-
-
 Njegova hitrost v nekaterih primerih prekaša hitrost pthreads ali pa je približno enaka. Poleg preprostosti ponuja zelo zanesljivo in hitro vzporedno procesiranje.
 
 \section{Algoritma}
@@ -185,10 +182,10 @@ Za primerjavo jezikov sva implementirala dva algoritma.
 
 Prvi, Adaptive Quick Sort, je paralelna implementacija sortirnega algoritma Quick Sort.
 Izvaja se na vseh razpoložljivih nitih sistema.
-Zasnovan je tako, da paralelno izvede čim večji del računanja, tudi deljenje in združevanje podatkov.
+Zasnovala sva ga tako, da vzporedno izvede čim večji del računanja, tudi deljenje in združevanje podatkov.
 
-Drugi simulira JPEG kompresijo.
-Izvaja se na grafični kartici prek knjižnic OpenCL in CUDAnative.
+Z drugim algoritmom, pa sva simulira JPEG kompresijo, ki se je izvajala na grafični kartici prek knjižnic
+OpenCL in CUDAnative.
 
 \subsection{Adaptive Quick Sort}
 
@@ -201,11 +198,15 @@ V prvem delu se tabela razdeli na t delov in določi se pivotni element:
 
 \includegraphics[width=0.45\textwidth]{aqs_diag_1}
 
-Nato vsaka nit “in-place” razdeli svoj del na elemente manjše ali enake pivotu (L) ter elemente večje ali enake pivotu (H):
+Nato vsaka nit operira nad svojim delom tabele in uredi števila glede na pivot. V L dobimo elemente manjše ali enake pivotu, 
+v H pa elemente večje od pivota:
 
 \includegraphics[width=0.45\textwidth]{aqs_diag_2}
 
-Vse niti se nato uporabijo za premik “spodnjih” delov na začetek in “zgornjih” delov na konec tabele, vsaka nit premakne svoj kos L in kos H:
+Po urejanju vsaka nit sodeluje v premiku svojega dela elementov, ki so manjši ali enaki pivotu (L), na levo stran tabele.
+Cilj koraka je, da niti združijo vse dele L in D tako, da ima tabela na levi vse L dele ter na desni vse D dele.
+To pomeni, da bo pivot delil celotno tabelo na elemente, ki so manjši ali enaki pivotu in elemente, ki so večji od pivota. 
+Zaradi pomnjenja odmika vsakega izmed delov, lahko vsaka nit natačno izračuna, kam mora vsaka premakniti svoj del L. 
 
 \includegraphics[width=0.45\textwidth]{aqs_diag_3}
 
@@ -256,7 +257,7 @@ Ta algoritem je relativno enostaven pri implementaciji, je pa dovolj zahteven, d
 
 \section{Okolje}
 
-Testiranje se je izvajalo na namiznem računalniku s procesorjem AMD Ryzen Threadripper 1920X na tovarniško nastavljeni hitrosti, 32 GB pomnilnika s hitrostjo
+Testirala sva na namiznem računalniku s procesorjem AMD Ryzen Threadripper 1920X na tovarniško nastavljeni hitrosti, 32 GB pomnilnika s hitrostjo
 	3000 MHz in grafično kartico Nvidia GeForce GTX 1080 Ti.
 Nameščen je bil operacijski sistem Windows 10 - 64 bit, različica 1809.
 
@@ -272,13 +273,12 @@ Programi v jeziku Julia so se zaganjali v ukaznem pozivu Powershell, Julia verzi
 \subsection{Adaptive Quick Sort}
 
 Algoritem očitno izpostavi obseg razlik hitrosti posameznih jezikov in kako velikost podatkov vpliva nanje.
-Programi so bili testirani na eksponento povečujoči tabeli naključno generiranih predznačenih 64-bitnih celih števil.
-Za vsako velikost se je vsak program izvedel petkrat, vsakokrat z na novo generiranimi števili.
+Programe sva testirala na eksponento povečujoči tabeli naključno generiranih predznačenih 64-bitnih celih števil.
+Za vsako velikost sva vsak program izvedla petkrat in po koncu izvajanja izračunala povprečje sortiranja. 
 Največja tabela je vsebovala 200 milijonov elementov.
-Končne vrednosti so povprečja petih izvajanj.
 
-Vsak program je bil spisan na način, ki je minimiziral število nepotrebnih dostopov do pomnilnika in hkrati kar najbolje sledil prej opisanemu načrtu.
-V primeru Pythona in Julie je jezik omejeval ta aspekt optimizacije, kar pa bo obravnavano kasneje.
+Vsak program sva spisala na način, ki je minimiziral število nepotrebnih dostopov do pomnilnika in hkrati kar najbolje sledil prej opisanemu načrtu.
+V primeru Pythona in Julie sva bila omejena s strani jezika omejeval ta aspekt optimizacije, kar pa bo obravnavano kasneje.
 
 \begin{figure}[h]
 \includegraphics[width=0.5\textwidth]{aqs_speed}
@@ -300,9 +300,10 @@ Zaradi zelo dolgega časa testiranja pri tabeli velikosti 100 milijonov - pribli
 \subsection{JPEG}
 
 Za razliko od sortirnega algoritma sta tu implementaciji skoraj enakovredni.
-Programa sta bila testirana na čedalje večjih kvadratnih slikah, velikosti dimenzij so bile naraščajoče potence števila 2.
-Za vsako velikost sta se programa najprej dvakrat zagnala brez merjenja, nato pa je sledilo 5 meritev.
-Končne vrednosti so povprečje teh meritev.
+Programa sva testirala na čedalje večjih kvadratnih slikah, velikosti dimenzij so bile naraščajoče potence števila 2.
+Za vsako velikost sta se programa najprej dvakrat zagnala brez merjenja, kar odpravi počasen začetek izvajanja,
+nato pa je sledilo 5 meritev.
+Končne vrednosti meritev sva povprečila.
 
 Programa sta semantično skoraj identična.
 Edine razlike so sintaktične, kjer se jezika razlikujeta.
@@ -363,7 +364,7 @@ Hkrati pa so nam na voljo polni izpisi napak in dobra dokumentacija.
 Jezik izpeljuje tipe, funkcije lahko defeniramo med izvajanjem, dopolnjujemo lahko vgrajene module, na voljo je vgrajen upravitelj paketov itd.
 
 Največja hiba jezika trenutno je to, da ni še dokončan.
-Veliko funkcionalnosti, ki je obljubljena kot del jezika, je še nedokončane ali v eksperimentalnem stanju.
+Veliko funkcionalnosti, ki so obljubljene kot del jezika, je še nedokončanih ali v eksperimentalnem stanju.
 
 Primer nedokončane funkcionalnosti so niti.
 Trenutno je makro \texttt{@threads} edini način za delitev dela med več niti.
@@ -371,7 +372,7 @@ V prihodnosti naj bi se spisal vmesnik, ki bo omogočal poljubno zaganjanje niti
 	uporabni.
 
 Poleg tega modul \texttt{OpenCL.jl} v času pisanja ni podpiral še Julie verzije 1.0.
-Zaragi tega je bila implementacija JPEG simulacije spisana prek vmesnika CUDA.
+Zaragi tega sva se odločila implementacijo JPEG simulacije spisana prek vmesnika CUDA.
 
 \section{Sklep}
 
@@ -382,8 +383,8 @@ Večinoma se teh obljub tudi drži, kolikor je le možno.
 Njena največja hiba je nedokončanost, kar pa ni presenetljivo, saj je šele lani dosegla izdajo 1.0.
 Razvoj jezika je zelo hiter, tako zaradi fleksibilnosti jezika samega kot tudi vztrajno povečujoče se skupnosti.
 
-Navdušenost nad jezikom Julia ni neupravičeno.
-Prinaša svež pristop do računanja, modularen, prijazen in hiter.
+Navdušenost nad jezikom Julia ni neupravičena.
+Prinaša svež pristop do računanja, ki je modularen, prijazen in hiter.
 Potrebuje le vztrajnost razvijalcev in čas.
 
 \begin{thebibliography}{99}
