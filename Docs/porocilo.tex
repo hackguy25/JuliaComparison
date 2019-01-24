@@ -15,7 +15,7 @@
 \usepackage{setspace}
 \usepackage{color}
 \definecolor{light-gray}{gray}{0.95}
-%\usepackage{listings} % za vključevanje kode
+\usepackage{listings} % za vključevanje kode
 %\usepackage{hyperref}
 %\usepackage{amsmath}
 %\usepackage{amsthm}
@@ -23,6 +23,11 @@
 
 % correct bad hyphenation here
 %\hyphenation{op-tical net-works semi-conduc-tor}
+
+\lstset{
+basicstyle=\linespread{0.92}\small,
+basewidth={0.5em, 0.3em}
+}
 
 \begin{document}
 
@@ -75,18 +80,141 @@ To omogoča učinkovito izrabo pomnilnika in procesorskega časa, posledično pa
 	jeziku C.\cite{julia-benchmarks}
 
 Je dinamičen programski jezik v polnem pomenu besedne zveze.
-Med drugim omogoča dinamično izpeljavo podatkovnih tipov, modificiranje in izvajanje kode iz besedilnih nizov,\cite{julia-metaprogramming} refleksijo, makre in večmetodnost
-	funkcij.
+Med drugim omogoča dinamično izpeljavo podatkovnih tipov, modificiranje in izvajanje kode iz besedilnih nizov,\cite{julia-metaprogramming} refleksijo,
+	makre in večmetodnost funkcij.
 
 V času, ko sva pisala dokument, je jezik že dosegel različico 1.0, a kljub temu še ni popolnoma stabilen.
-Kot sva opisala kasneje, ostaja še velik del obljubljene funkcionalnosti neimplementirane, medtem ko ima stabilnost in hitrost obstoječe kode višjo
-	prioriteto.
+Kot je opisano pozneje v poročilu, ostaja še velik del obljubljene funkcionalnosti neimplementirane, medtem ko ima stabilnost in hitrost obstoječe kode
+	višjo prioriteto.
+
+\section{Sintaksa}
+
+Razvijalci Julie prihajajo s področja računske teorije in matematike\cite{julia-reasons}.
+Želeli so ohraniti MATLAB-ovo prijaznost do uporabnika glede vnašanja matematičnih funkcij, hkrati pa vpeljati splošnost jezika Python.
+
+Primer funkcije v jeziku Julia:
+\begin{lstlisting}
+function onePassSwaps!(src::AbstractArray{T,1}
+                           where T<:Number,
+                       pivot::Number)
+    
+    srcSize = size(src)[1]
+    i = 0
+    j = srcSize + 1
+    
+    while i < j
+    
+        i += 1
+        while i <= srcSize && src[i] < pivot
+            i += 1
+        end
+        
+        j -= 1
+        while j > 0 && src[j] > pivot
+            j -= 1
+        end
+        
+        if i >= j
+            return (j, srcSize - j)
+        end
+        
+        src[i], src[j] = src[j], src[i]
+        
+    end
+end
+\end{lstlisting}
+
+Funkcija je deklarirana kot $function \langle ime\rangle (\langle parametri\rangle )$.
+Ime v tem primeru vsebuje klicaj.
+Ta po dogovoru označuje, da funkcija spreminja argumente (sicer pa ni potreben).
+Parametrom so določeni tipi, kar ni nujno, ampak omogoča prevajalniku, da izvede dodatne optimizacije, ki na parametrih splošnega tipa niso možne.
+Določeni tipi so generični, njihovi parametri se nahajajo v zavitih oklepajih.
+
+Deklaraciji sledi telo funkcije, ki se konča z rezervirano besedo $end$.
+Ukazi skoraj enaki kot v jeziku MATLAB, le da se v Juliji indeksira z oglatimi oklepaji, okrogli oklepaji kot pripona so rezervirani za klice funkcij.
+Poleg tega se indeksi v Juliji tako kot v MATLAB-u začnejo z 1.
+
+Podpičja na koncu ukazov niso nujna.
+V jeziku MATLAB se uporabljajo za preprečevanje izpisovanja rezultatov ukazov, v Juliji pa se rezultati ukazov v funkcijah ne izpisujejo, zato so
+	za ta namen nepotrebna.
+
+Bloki ukazov se v C-ju označujejo z zavitimi oklepaji, v Pythonu pa z zamikom v desno.
+Julia za ta namen uporablja rezervirani besedi $begin$ in $end$.
+Beseda $begin$ ni vedno nujna, na primer pri stavkih $if$, $for$ in $while$ je dovolj le $end$ na koncu bloka.
+
+Funkcija lahko podobno kot v jeziku Python vrača različne tipe vrednosti glede na dane parametre.
+V zgornjem primeru vrne par dveh vrednosti, določen z okroglimi oklepaji.
+
+Ista funkcija v jeziku Python:
+\begin{lstlisting}
+def onePassSwaps (src: np.ndarray, pivot):
+
+    i = -1
+    j = src.size
+
+    while i < j:
+
+        i += 1
+        while i < src.size and src[i] < pivot:
+            i += 1
+
+        j -= 1
+        while j >= 0 and src[j] > pivot:
+            j -= 1
+
+        if i >= j:
+            return (i, src.size - i)
+
+        src[i], src[j] = src[j], src[i]
+\end{lstlisting}
+
+Razlike so minimalne, le indeksi, bloki in deklaracija funkcije so različni.
+
+Ista funkcija v jeziku C:
+\begin{lstlisting}
+void onePassSwaps(int id) {
+
+    int left_border = starts[id];
+    int right_border = ends[id];
+
+    int left_index = left_border - 1;
+    int right_index = right_border + 1;
+
+    while (left_index <= right_index) {
+
+        left_index++;
+        while (table[left_index] <= pivot[id] &&
+               left_index <= right_border)
+            left_index++;
+
+        right_index--;
+        while (table[right_index] > pivot[id] &&
+               right_index >= left_border)
+            right_index--;
+
+        if (left_index < right_index) {
+            long long mem = table[left_index];
+            table[left_index] =
+                table[right_index];
+            table[right_index] = mem;
+        }
+    }
+    split[id] = right_index + 1;
+}
+\end{lstlisting}
+
+Jezik C obravnava tabele na popolnoma različen način kot Python in Julia, kar se odraža na zelo različen izgled kode.
+V tem primeru se podatki nahajajo v globalnih tabelah $starts$, $ends$, $table$, \ldots
+
+Vsaka deklaracija spremenljivke vključuje njen tip, vsak ukaz se zaključi s podpičjem.
+Pogoji v stavkih $for$, $if$ in $while$ morajo biti zaprti v okroglih oklepajih.
+Vsak blok je zaprt v zavitih oklepajih.
 
 \section{Porazdeljeno računanje}
 
 Julia podpira več oblik delitve dela.
-Osredotočila sva se na metode podobne tistim, ki smo jih obravnavali pri predmetu porazdeljeni sistemi: eksplicitna delitev dela med procesorska jedra in pošiljanje
-	dela koprocesorjem - GPE.
+Osredotočila sva se na metode podobne tistim, ki smo jih obravnavali pri predmetu Porazdeljeni sistemi: eksplicitna delitev dela med procesorska jedra in
+	pošiljanje dela koprocesorjem - GPE.
 
 Julia v teoriji podpira delitev dela med procesorska jedra na več načinov.
 Ti so razdeljeni v dve skupini, na osnovi niti in na osnovi procesov.
@@ -181,11 +309,11 @@ Njegova hitrost v nekaterih primerih prekaša hitrost pthreads ali pa je pribli�
 Za primerjavo jezikov sva implementirala dva algoritma.
 
 Prvi, Adaptive Quick Sort, je paralelna implementacija sortirnega algoritma Quick Sort.
-Izvaja se na vseh razpoložljivih nitih sistema.
+Izvajal se je na vseh razpoložljivih nitih sistema.
 Zasnovala sva ga tako, da vzporedno izvede čim večji del računanja, tudi deljenje in združevanje podatkov.
 
-Z drugim algoritmom, pa sva simulira JPEG kompresijo, ki se je izvajala na grafični kartici prek knjižnic
-OpenCL in CUDAnative.
+Z drugim algoritmom pa sva simulirala JPEG kompresijo.
+Izvajal se je na grafični kartici prek knjižnic OpenCL in CUDAnative.
 
 \subsection{Adaptive Quick Sort}
 
@@ -198,15 +326,15 @@ V prvem delu se tabela razdeli na t delov in določi se pivotni element:
 
 \includegraphics[width=0.45\textwidth]{aqs_diag_1}
 
-Nato vsaka nit operira nad svojim delom tabele in uredi števila glede na pivot. V L dobimo elemente manjše ali enake pivotu, 
-v H pa elemente večje od pivota:
+Nato vsaka nit operira nad svojim delom tabele in uredi števila glede na pivot.
+V L dobimo elemente manjše ali enake pivotu, v H pa elemente večje od pivota:
 
 \includegraphics[width=0.45\textwidth]{aqs_diag_2}
 
 Po urejanju vsaka nit sodeluje v premiku svojega dela elementov, ki so manjši ali enaki pivotu (L), na levo stran tabele.
 Cilj koraka je, da niti združijo vse dele L in D tako, da ima tabela na levi vse L dele ter na desni vse D dele.
 To pomeni, da bo pivot delil celotno tabelo na elemente, ki so manjši ali enaki pivotu in elemente, ki so večji od pivota. 
-Zaradi pomnjenja odmika vsakega izmed delov, lahko vsaka nit natačno izračuna, kam mora vsaka premakniti svoj del L. 
+Zaradi pomnjenja odmika vsakega izmed delov lahko vsaka nit natačno izračuna, kam mora vsaka premakniti svoj del L. 
 
 \includegraphics[width=0.45\textwidth]{aqs_diag_3}
 
@@ -261,12 +389,12 @@ Testirala sva na namiznem računalniku s procesorjem AMD Ryzen Threadripper 1920
 	3000 MHz in grafično kartico Nvidia GeForce GTX 1080 Ti.
 Nameščen je bil operacijski sistem Windows 10 - 64 bit, različica 1809.
 
-Programi v jeziku C/C++ so se prevajali in zaganjali v programskem okolju Microsoft Visual Studio 2017 z nastavitvami za “pthreads”, “OpenMP” in “OpenCL”
+Programe v jeziku C/C++ sva prevajala in zaganjala v programskem okolju Microsoft Visual Studio 2017 z nastavitvami za “pthreads”, “OpenMP” in “OpenCL”
 	kot je zapisano v navodilih za vaje pri predmetu Porazdeljeni sistemi.
 
-Program v jeziku Python se je zaganjal v ukaznem pozivu Powershell, Python verzija 3.7.1 64 bit, numpy verzija 1.15.4.
+Program v jeziku Python sva je zaganjala v ukaznem pozivu Powershell, Python verzija 3.7.1 64 bit, numpy verzija 1.15.4.
 
-Programi v jeziku Julia so se zaganjali v ukaznem pozivu Powershell, Julia verzija 1.0.3 64 bit, CUDAnative verzija 0.9.1.
+Programe v jeziku Julia sva zaganjala v ukaznem pozivu Powershell, Julia verzija 1.0.3 64 bit, CUDAnative verzija 0.9.1.
 
 \section{Analiza hitrosti}
 
@@ -274,11 +402,11 @@ Programi v jeziku Julia so se zaganjali v ukaznem pozivu Powershell, Julia verzi
 
 Algoritem očitno izpostavi obseg razlik hitrosti posameznih jezikov in kako velikost podatkov vpliva nanje.
 Programe sva testirala na eksponento povečujoči tabeli naključno generiranih predznačenih 64-bitnih celih števil.
-Za vsako velikost sva vsak program izvedla petkrat in po koncu izvajanja izračunala povprečje sortiranja. 
+Za vsako velikost tabele sva vsak program izvedla petkrat in po koncu izvajanja izračunala povprečje izmerjenih časov sortiranj. 
 Največja tabela je vsebovala 200 milijonov elementov.
 
 Vsak program sva spisala na način, ki je minimiziral število nepotrebnih dostopov do pomnilnika in hkrati kar najbolje sledil prej opisanemu načrtu.
-V primeru Pythona in Julie sva bila omejena s strani jezika omejeval ta aspekt optimizacije, kar pa bo obravnavano kasneje.
+V primeru Pythona in Julie sva bila omejena s strani jezika, kar pa bo obravnavano kasneje.
 
 \begin{figure}[h]
 \includegraphics[width=0.5\textwidth]{aqs_speed}
@@ -301,8 +429,7 @@ Zaradi zelo dolgega časa testiranja pri tabeli velikosti 100 milijonov - pribli
 
 Za razliko od sortirnega algoritma sta tu implementaciji skoraj enakovredni.
 Programa sva testirala na čedalje večjih kvadratnih slikah, velikosti dimenzij so bile naraščajoče potence števila 2.
-Za vsako velikost sta se programa najprej dvakrat zagnala brez merjenja, kar odpravi počasen začetek izvajanja,
-nato pa je sledilo 5 meritev.
+Za vsako velikost sta se programa najprej dvakrat zagnala brez merjenja, kar odpravi počasen začetek izvajanja, nato pa je sledilo 5 meritev.
 Končne vrednosti meritev sva povprečila.
 
 Programa sta semantično skoraj identična.
@@ -372,7 +499,7 @@ V prihodnosti naj bi se spisal vmesnik, ki bo omogočal poljubno zaganjanje niti
 	uporabni.
 
 Poleg tega modul \texttt{OpenCL.jl} v času pisanja ni podpiral še Julie verzije 1.0.
-Zaragi tega sva se odločila implementacijo JPEG simulacije spisana prek vmesnika CUDA.
+Zaragi tega sva se odločila implementacijo JPEG simulacije spisati prek vmesnika CUDA.
 
 \section{Sklep}
 
@@ -395,6 +522,8 @@ Potrebuje le vztrajnost razvijalcev in čas.
 \bibitem{julia-site} The Julia Language. [Online] Dosegljivo: \mbox{https://www.julialang.org/}. [Dostopano \today].
 
 \bibitem{julia-benchmarks} Julia Micro-Benchmarks. [Online] Dosegljivo: \mbox{https://www.julialang.org/benchmarks/}. [Dostopano \today].
+
+\bibitem{julia-reasons} Why We Created Julia. [Online] Dosegljivo: \mbox{https://julialang.org/blog/2012/02/why-we-created-julia}. [Dostopano \today].
 
 \bibitem{julia-metaprogramming} Metaprogramming. \emph{The Julia Language}. [Online] Dosegljivo:
 	https://docs.julialang.org/\allowbreak en/v1/manual/\allowbreak metaprogramming/index.html. [Dostopano \today].
