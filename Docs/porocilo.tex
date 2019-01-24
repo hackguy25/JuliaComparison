@@ -72,7 +72,7 @@ Obljublja enostavno in učinkovito distribucijo dela, hkrati pa ohranja prijazno
 
 \section{Jezik}
 
-Julia predstavlja zanimivo sredino med hitrostjo C-ja in prijaznostjo do uporabnika raznih dinamičnih programskih jezikov, kot so Python, JavaSript,
+Julia predstavlja zanimivo sredino med hitrostjo jezika C in prijaznostjo do uporabnika raznih dinamičnih programskih jezikov, kot so Python, JavaSript,
 	MATLAB, Lua, ...
 
 Julia se pred izvajanjem optimizira in prevede v strojno kodo z uporabo programske opreme LLVM\footnote{http://llvm.org/}.
@@ -138,7 +138,7 @@ Podpičja na koncu ukazov niso nujna.
 V jeziku MATLAB se uporabljajo za preprečevanje izpisovanja rezultatov ukazov, v Juliji pa se rezultati ukazov v funkcijah ne izpisujejo, zato so
 	za ta namen nepotrebna.
 
-Bloki ukazov se v C-ju označujejo z zavitimi oklepaji, v Pythonu pa z zamikom v desno.
+Bloki ukazov se v v jeziku C označujejo z zavitimi oklepaji, v Pythonu pa z zamikom v desno.
 Julia za ta namen uporablja rezervirani besedi $begin$ in $end$.
 Beseda $begin$ ni vedno nujna, na primer pri stavkih $if$, $for$ in $while$ je dovolj le $end$ na koncu bloka.
 
@@ -203,7 +203,7 @@ void onePassSwaps(int id) {
 }
 \end{lstlisting}
 
-Jezik C obravnava tabele na popolnoma različen način kot Python in Julia, kar se odraža na zelo različen izgled kode.
+C obravnava tabele popolnoma drugače način kot Python in Julia, kar se odraža na zelo različen izgled kode.
 V tem primeru se podatki nahajajo v globalnih tabelah $starts$, $ends$, $table$, \ldots
 
 Vsaka deklaracija spremenljivke vključuje njen tip, vsak ukaz se zaključi s podpičjem.
